@@ -234,10 +234,11 @@ def split_video(file_in: str, dir_out: str, file_name: str = "", ext_out: str = 
         frame_count: int = min(frame_count, num_frames) if frame_count != -1 else num_frames
     if frame_count < 1:
         raise ValueError("Values passed in result in no or negative frames of output.")
+    num_zeros = len(str(frame_count - 1))
     for frame, counter in zip(vid_iterator, range(0, num_frames)):
         if frame_count > counter - start_frame >= 0:
             temp_name = os.path.join(dir_out,
-                                     file_name + fo.padded_zeros(frame_count - 1, counter - start_frame) + ext_out)
+                                     f"{file_name}{str(counter - start_frame).zfill(num_zeros)}{ext_out}")
             print("saving to %s" % temp_name)
             cv2.imwrite(temp_name, frame[0])
         elif counter > start_frame + frame_count:

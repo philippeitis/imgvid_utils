@@ -71,10 +71,6 @@ class TestFileOps(unittest.TestCase):
         for i in range(10):
             self.assertFilePathEqual("./test_suite/images/image%d.mp4" % i, files[i])
 
-    def test_padded_zeros(self):
-        expected_string = "0035"
-        self.assertEqual(expected_string, fo.padded_zeros("abcd", 35))
-
     def test_append_forward_slash_path(self):
         paths = ["a", "hello", "hello/", "/hello/"]
         paths_correct = ["a/", "hello/", "hello/", "/hello/"]

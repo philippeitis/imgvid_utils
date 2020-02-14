@@ -246,14 +246,12 @@ def make_images_from_folders(dirs_in: Union[List[str], str], ext_in: Union[List[
                              cols: int = 1, rows: int = 1, width: int = 640, height: int = 480, mode='rd'):
     image_iter = ImageGenerator(dirs_in, ext=ext_in, num=cols * rows)
     os.makedirs(dir_out, exist_ok=True)
-    counter: int = 0
     image_iter.set_min_files(max_imgs)
-    for images_data in image_iter:
+    num_zeros = len(str(image_iter.min_files // image_iter.num -1))
+    for counter, images_data in enumerate(image_iter):
         images = images_data.images
-        temp_file_name = fo.form_file_name(dir_out, file_name + fo.padded_zeros(image_iter.min_files // image_iter.num,
-                                                                                counter), ext_out)
+        temp_file_name = fo.form_file_name(dir_out, file_name + str(counter).zfill(num_zeros), ext_out)
         cv2.imwrite(temp_file_name, stack_images(resize_images(images, (width, height)), (cols, rows), mode=mode))
-        counter += 1
 
 
 # Returns the appropriate dimensions, given a set of

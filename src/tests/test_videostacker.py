@@ -16,7 +16,7 @@ class TestVideoStacker(unittest.TestCase):
         self.assertEqual(100, len(fo.get_files("./temp/", "png")))
         files = fo.get_files("./temp", "png")
         for i in range(100):
-            self.assertTrue(self.assertFilePathEqual("./temp/kitty%s.png" % fo.padded_zeros(99, i), files[i]))
+            self.assertTrue(self.assertFilePathEqual("./temp/kitty%s.png" % str(i).zfill(99), files[i]))
 
         fo.clear_files("./temp/", "png")
 

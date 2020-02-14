@@ -130,29 +130,6 @@ def get_first_n_files(directories: Union[List[str], str], ext: Union[List[str], 
     return output
 
 
-# Return curr_num as a string padded with zeroes to be the length of ref_string
-# TODO: should be flipped.
-def padded_zeros(ref_string, curr_num) -> str:
-    return pad_string_to_len(str(curr_num), "0", len(str(ref_string)))
-
-
-def pad_string_to_len(string, pad_char, length, front: bool =True, symmetrical: bool =False):
-    if symmetrical:
-        if len(string) % 2 != length % 2:
-            raise Exception("String will not be symmetrical")
-        while len(string) < length:
-            string = pad_char + string + pad_char
-
-    if len(pad_char) != 1:
-        raise Exception("pad_char should be a string of length 1")
-    while len(string) < length:
-        if front:
-            string = pad_char + string
-        else:
-            string += pad_char
-    return string
-
-
 def append_forward_slash_path(paths: Union[List[str], str]) -> Union[List[str], str, None]:
     """ Returns the input string(s), in the same format as they were passed in, with a minimum of one forward slash
     at the end, given that no forward slash exists at the end.
