@@ -1,5 +1,5 @@
 import unittest
-from src import file_ops as fo
+from imgvid_utils import file_ops as fo
 import os
 import shutil
 

@@ -1,6 +1,6 @@
 import unittest
-from src import videostacker as vs
-from src import file_ops as fo
+from imgvid_utils import videostacker as vs
+from imgvid_utils import file_ops as fo
 import os
 import cv2
 
@@ -12,7 +12,7 @@ class TestVideoStacker(unittest.TestCase):
         return os.path.normpath(path_one) == os.path.normpath(path_two)
 
     def test_videosplit(self):
-        vs.split_video("./src/test_files/00000.MTS", "temp/", "kitty", "png", frame_count=100, start_frame=15)
+        vs.split_video("./imgvid_utils/test_files/00000.MTS", "temp/", "kitty", "png", frame_count=100, start_frame=15)
         self.assertEqual(100, len(fo.get_files("./temp/", "png")))
         files = fo.get_files("./temp", "png")
         for i in range(100):
@@ -21,10 +21,10 @@ class TestVideoStacker(unittest.TestCase):
         fo.clear_files("./temp/", "png")
 
     def test_video_from_videos(self):
-        vs.make_video_from_videos(["./src/test_files/00000.MTS", "./src/test_files/00000.MTS"]
+        vs.make_video_from_videos(["./imgvid_utils/test_files/00000.MTS", "./imgvid_utils/test_files/00000.MTS"]
                                   , "temp/", "kitty", "mp4", cols=2, rows=1, width=800, height=600)
 
-        video = cv2.VideoCapture("./src/test_files/00000.MTS")
+        video = cv2.VideoCapture("./imgvid_utils/test_files/00000.MTS")
         fps = video.get(cv2.CAP_PROP_FPS)
         num_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
         ret = True
