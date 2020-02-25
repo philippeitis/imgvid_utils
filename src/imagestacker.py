@@ -126,25 +126,27 @@ class ImageGeneratorMatchToName:
         import os
         possible_file_names = {}
         if isinstance(self.directories, str):
-            self.files[0] = {os.path.basename(f_name): f_name for f_name in
-                             fo.get_files(self.directories, ["jpg", "png"])}
-            possible_file_names = {key: True for key in self.files.keys()}
+            self.files[0] = {
+                os.path.basename(f_name): f_name
+                for f_name in fo.get_files(self.directories, ["jpg", "png"])
+            }
+            possible_file_names = {key: True for key in self.files}
         else:
             counter = 0
             for directory in self.directories:
                 files = fo.get_files(self.directories[counter], ["jpg", "png"])
-                if len(files) == 0:
-                    raise ValueError("No files found in %s" % directory)
-                else:
+                if files:
                     self.files[counter] = {os.path.basename(f_name): f_name
                                            for f_name in files}
-                    possible_file_names = {key: (key in possible_file_names.keys())
-                                           for key in self.files[counter].keys()}
-
+                    possible_file_names = {key: (key in possible_file_names)
+                                           for key in self.files[counter]}
                     counter += 1
+                else:
+                    raise ValueError(f"No files found in {directory}")
         self.possible_file_names_arr = [key for key, val in possible_file_names.items() if val]
-        self.num_imgs = len(self.possible_file_names_arr)
-        if len(self.possible_file_names_arr) == 0:
+        if self.possible_file_names_arr:
+            self.num_imgs = len(self.possible_file_names_arr)
+        else:
             raise ValueError("No file names in common.")
 
     def __iter__(self):
@@ -214,7 +216,7 @@ def make_images_from_folders_match(dirs_in, dir_out, max_imgs=None, cols=1, rows
                                    resize_opt: Resize = Resize.RESIZE_FIRST, width=None, height=None, mode='rd'):
     image_iter = ImageGeneratorMatchToName(dirs_in)
     counter: int = 0
-    fn: function = return_first
+    fn = return_first
 
     if resize_opt == Resize.RESIZE_UP:
         fn = return_max

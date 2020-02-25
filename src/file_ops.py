@@ -137,7 +137,6 @@ def append_forward_slash_path(paths: Union[List[str], str]) -> Union[List[str], 
     Keyword arguments:
     paths -- one or more paths to add a forward slash to.
     """
-
     if paths is None:
         return None
     if isinstance(paths, str):
@@ -157,7 +156,6 @@ def clear_files(folder: str, *argv) -> None:
     folder -- folder to remove extensions from.
     *argv -- a list of one or more extensions.
     """
-
     from os import remove
     from os import path
     from glob import glob
