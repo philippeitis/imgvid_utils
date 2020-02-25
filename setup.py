@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="imgvid_utils",
-    version="0.0.1",
+    version="0.0.2",
     author="Philippe Solodov",
     author_email="solop1906@gmail.com",
     description="A package that provides helpful utilities to interact with videos and images through OpenCV.",
