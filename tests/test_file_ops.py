@@ -1,5 +1,5 @@
 import unittest
-from .. import file_ops as fo
+from src import file_ops as fo
 import os
 import shutil
 

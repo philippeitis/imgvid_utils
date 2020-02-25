@@ -1,6 +1,6 @@
 import unittest
-from .. import videostacker as vs
-from .. import file_ops as fo
+from src import videostacker as vs
+from src import file_ops as fo
 import os
 import cv2
 
