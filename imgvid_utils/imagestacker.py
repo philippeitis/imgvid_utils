@@ -15,10 +15,20 @@ class Resize(Enum):
 
 
 class ImageDataStore:
+    __slots__ = ["images", "_file_name", "_ext"]
+
     def __init__(self, images, file_name, ext):
         self.images = images
-        self.file_name = file_name
-        self.ext = ext
+        self._file_name = file_name
+        self._ext = ext
+
+    @property
+    def ext(self):
+        return self._ext
+
+    @property
+    def file_name(self):
+        return self._file_name
 
 
 class ImageGenerator:
@@ -46,10 +56,16 @@ class ImageGenerator:
 
         self.load_dirs()
 
-    # Sets the number of files that this iterator will output:
-    # If min_files <= 0, nothing will be returned. If min_files >= self.min_files, self.min_files remains unchanged.
-    # Otherwise, self.min_files = min_files.
+    @min_files.setter
     def set_min_files(self, min_files: Union[None, int]):
+        """
+        Sets the number of files that this iterator will output:
+        If min_files <= 0, nothing will be returned. If min_files >= self.min_files, self.min_files remains unchanged.
+        Otherwise, self.min_files = min_files
+
+        :param min_files:
+        :return:
+        """
         if min_files is not None:
             if min_files < 0:
                 self.min_files = 0
@@ -124,6 +140,7 @@ class ImageGeneratorMatchToName:
         else:
             raise ValueError("One or more directories do not exist.")
 
+    @min_files.setter
     def set_min_files(self, min_files: Union[None, int]):
         if min_files is not None:
             if min_files < 0:
@@ -244,7 +261,7 @@ def make_images_from_folders_match(dirs_in, dir_out, max_imgs=None, cols=1, rows
     else:
         fn = return_first
 
-    image_iter.set_min_files(max_imgs)
+    image_iter.min_files = max_imgs
     os.makedirs(dir_out, exist_ok=True)
     for image_data in image_iter:
         if max_imgs is None or counter < max_imgs:
@@ -285,12 +302,25 @@ def make_images_from_folders(dirs_in: Union[List[str], str], ext_in: Union[List[
     """
     image_iter = ImageGenerator(dirs_in, ext=ext_in, num=cols * rows)
     os.makedirs(dir_out, exist_ok=True)
-    image_iter.set_min_files(max_imgs)
+
+    image_iter.min_files = max_imgs
     num_zeros = len(str(image_iter.min_files // image_iter.num - 1))
-    for counter, images_data in enumerate(image_iter):
-        images = images_data.images
-        temp_file_name = fo.form_file_name(dir_out, file_name + str(counter).zfill(num_zeros), ext_out)
-        cv2.imwrite(temp_file_name, stack_images(resize_images(images, (width, height)), (cols, rows), mode=mode))
+    for counter, image_data in enumerate(image_iter):
+        temp_file_name = fo.form_file_name(
+                                        dir_out,
+                                        file_name + str(counter).zfill(num_zeros),
+                                        ext_out
+                                        )
+        cv2.imwrite(
+                    temp_file_name,
+                    stack_images(
+                        resize_images(
+                            image_data.images,
+                            (width, height)
+                            ),
+                        (cols, rows),
+                        mode=mode)
+                    )
 
 
 def get_dimensions_dirs(dirs_in: Union[List[str], str], ext: str, resize: Resize):
@@ -397,7 +427,12 @@ def get_max_dimensions_dirs(dirs_in: Union[List[str], str], ext_in: Union[List[s
         try:
             return return_max(dims)
         except ValueError:
-            raise ValueError("No files with given extension %s found in any directory." % (ext_in,))
+            if isinstance(ext_in, str):
+                ext_str = ext_in
+            else:
+                ext_str = ", ".join(ext_in)
+
+            raise ValueError(f"No files with extension(s) ({ext_str}) found in any directory.")
 
 
 def get_first_dimensions_files(files_in: Union[List[str], str], ext_in: Union[List[str], str]):
@@ -412,7 +447,7 @@ def get_first_dimensions_files(files_in: Union[List[str], str], ext_in: Union[Li
         files_in = [files_in]
 
     if len(files_in) == 0:
-        raise ValueError("Insufficient files.")
+        raise ValueError("get_first_dimensions_files requires at least one file.")
 
     if "mp4" not in ext_in:
         return return_first(get_img_dimensions(files_in))
@@ -431,7 +466,7 @@ def get_min_dimensions_files(files_in: Union[List[str], str], ext_in: Union[List
         files_in = [files_in]
 
     if len(files_in) == 0:
-        raise ValueError("Insufficient files.")
+        raise ValueError("get_min_dimensions_files requires at least one file.")
 
     if "mp4" not in ext_in:
         return return_min(get_img_dimensions(files_in))
@@ -450,7 +485,7 @@ def get_max_dimensions_files(files_in: Union[List[str], str], ext_in: Union[List
         files_in = [files_in]
 
     if len(files_in) == 0:
-        raise ValueError("Insufficient files.")
+        raise ValueError("get_max_dimensions_files requires at least one file.")
 
     if "mp4" not in ext_in:
         return return_max(get_img_dimensions(files_in))
