@@ -261,8 +261,14 @@ def make_images_from_folders(dirs_in: Union[List[str], str], ext_in: Union[List[
         cv2.imwrite(temp_file_name, stack_images(resize_images(images, (width, height)), (cols, rows), mode=mode))
 
 
-# Returns the appropriate dimensions, given a set of
 def get_dimensions_dirs(dirs_in: Union[List[str], str], ext: str, resize: Resize):
+    """
+    Returns the appropriate dimensions given resize.
+    :param dirs_in:
+    :param ext:
+    :param resize:
+    :return:
+    """
     if resize == Resize.RESIZE_FIRST:
         return get_first_dimensions_dirs(dirs_in, ext)
     if resize == Resize.RESIZE_UP:
@@ -284,10 +290,16 @@ def get_dimensions_files(files_in: Union[List[str], str], ext: str, resize: Resi
         return get_first_dimensions_files(files_in, ext)
 
 
-# Will get the dimensions of the first file in dirs_in with ext_in.
 def get_first_dimensions_dirs(dirs_in: Union[List[str], str], ext_in: Union[List[str], str]):
+    """
+    Returns the dimensions of the first valid file found with any extension in ext_in. Order
+    :param dirs_in:
+    :param ext_in:
+    :return:
+    """
+
     if len(dirs_in) == 0:
-        raise Exception("Insufficient directories.")
+        raise ValueError("Insufficient directories.")
 
     if isinstance(dirs_in, str):
         return get_first_dimensions_files(fo.get_files(dirs_in, ext_in), ext_in)
@@ -302,8 +314,15 @@ def get_first_dimensions_dirs(dirs_in: Union[List[str], str], ext_in: Union[List
         raise ValueError("No files with given extension %s found in any directory." % (", ".join(ext_in),))
 
 
-# Returns the range of image sizes.
 def get_min_dimensions_dirs(dirs_in: Union[List[str], str], ext_in: Union[List[str], str]):
+    """
+    Returns the minimum dimensions of any file matching the specified extensions across all
+    directories in dirs_in.
+    :param dirs_in:
+    :param ext_in:
+    :return:
+    """
+
     if len(dirs_in) == 0:
         raise ValueError("Insufficient directories.")
 
@@ -322,8 +341,15 @@ def get_min_dimensions_dirs(dirs_in: Union[List[str], str], ext_in: Union[List[s
             raise ValueError("No files with given extension %s found in any directory." % (ext_in,))
 
 
-# Returns the range of image sizes.
 def get_max_dimensions_dirs(dirs_in: Union[List[str], str], ext_in: Union[List[str], str]):
+    """
+    Returns the maximum dimensions of any file matching the specified extensions across all
+    directories in dirs_in.
+    :param dirs_in:
+    :param ext_in:
+    :return:
+    """
+
     if len(dirs_in) == 0:
         raise ValueError("Insufficient directories.")
 
@@ -342,8 +368,14 @@ def get_max_dimensions_dirs(dirs_in: Union[List[str], str], ext_in: Union[List[s
             raise ValueError("No files with given extension %s found in any directory." % (ext_in,))
 
 
-# Will get the dimensions of the first file in files_in
 def get_first_dimensions_files(files_in: Union[List[str], str], ext_in: Union[List[str], str]):
+    """
+    Will get the dimensions of the first file in files_in
+
+    :param files_in:
+    :param ext_in:
+    :return:
+    """
     if isinstance(files_in, str):
         files_in = [files_in]
 
@@ -356,8 +388,13 @@ def get_first_dimensions_files(files_in: Union[List[str], str], ext_in: Union[Li
         return return_first(get_video_dimensions(files_in))
 
 
-# Gets the minimum and maximum dimensions of the files in the list.
 def get_min_dimensions_files(files_in: Union[List[str], str], ext_in: Union[List[str], str]):
+    """
+    Gets the smallest dimensions of the input files.
+    :param files_in:
+    :param ext_in:
+    :return:
+    """
     if isinstance(files_in, str):
         files_in = [files_in]
 
@@ -370,8 +407,14 @@ def get_min_dimensions_files(files_in: Union[List[str], str], ext_in: Union[List
         return return_min(get_video_dimensions(files_in))
 
 
-# Gets the minimum and maximum dimensions of the files in the list with the given extension(s).
+#
 def get_max_dimensions_files(files_in: Union[List[str], str], ext_in: Union[List[str], str]):
+    """
+    Gets the minimum and maximum dimensions of the files in the list with the given extension(s).
+    :param files_in:    A list of input files for which to get dimensions for.
+    :param ext_in:      The format of the files (eg. mp4, jpeg, png)
+    :return:
+    """
     if isinstance(files_in, str):
         files_in = [files_in]
 
@@ -384,8 +427,12 @@ def get_max_dimensions_files(files_in: Union[List[str], str], ext_in: Union[List
         return return_max(get_video_dimensions(files_in))
 
 
-# Given a list of file names, returns the dimensions of the images corresponding to the file names.
 def get_img_dimensions(imgs_in: Union[List[str], str]):
+    """
+    Given a list of file paths, returns the dimensions of the images corresponding to the file paths
+    :param imgs_in:     List of file paths corresponding to image files.
+    :return:            List of corresponding file dimensions.
+    """
     dims_list = []
     for img in imgs_in:
         file = cv2.imread(img)
@@ -394,8 +441,13 @@ def get_img_dimensions(imgs_in: Union[List[str], str]):
     return dims_list
 
 
-# Given a list of file names, returns the dimensions of the videos corresponding to the file names.
 def get_video_dimensions(videos_in: Union[List[str], str]):
+    """
+    Given a list of file paths, returns the dimensions of the videos corresponding to the file paths.
+
+    :param videos_in:   List of file paths corresponding to video files.
+    :return:            List of corresponding file dimensions.
+    """
     dims_list = []
     for vid in videos_in:
         file = cv2.VideoCapture(vid)
@@ -405,16 +457,33 @@ def get_video_dimensions(videos_in: Union[List[str], str]):
     return dims_list
 
 
-# Returns the first element in a given list.
-def return_first(list_of_dims):
-    return list_of_dims[0] if len(list_of_dims) > 0 else None
+def return_first(arr: list):
+    """
+    Returns the first element in an array.
+    :param arr:     Any list.
+    :return:        The first element in the list.
+    """
+    return arr[0] if len(arr) > 0 else None
 
 
-# Returns the dimensions that produce the maximum area. In the event of a tie, will return the first match.
 def return_max(list_of_dims):
+    """
+    Returns the dimensions that produce the maximum area.
+    In the event of a tie, will return the first match.
+
+    :param list_of_dims: A list of dimensions.
+    :return:             The dimensions with the greatest area.
+    """
     return max(list_of_dims, key=lambda dim: dim[0] * dim[1])
 
 
-# Returns the dimensions that produce the minimum area. In the event of a tie, will return the first match.
 def return_min(list_of_dims):
+    """
+    Returns the dimensions that produce the minimum area.
+    In the event of a tie, will return the first match.
+
+    :param list_of_dims: A list of dimensions.
+    :return:             The dimensions with the minimum area.
+    """
+
     return min(list_of_dims, key=lambda dim: dim[0] * dim[1])
