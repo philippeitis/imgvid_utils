@@ -59,8 +59,10 @@ class TestFileOps(unittest.TestCase):
     def test_get_files(self):
         self.assertEqual(25, len(fo.get_files("./test_suite/images", ".mp4")))
         self.assertEqual(25, len(fo.get_files("./test_suite/images/", ".mp4")))
+        self.assertEqual(25, len(fo.get_files("./test_suite/images/", "mp4")))
         self.assertEqual(25, len(fo.get_files("./test_suite/images/", ".pnG")))
         self.assertEqual(50, len(fo.get_files("./test_suite/images/", [".pnG", ".mp4"])))
+        self.assertEqual(0, len(fo.get_files("./test_suite/images/", "not_a_real_extension")))
 
     def assertFilePathEqual(self, path_one, path_two):
         return os.path.normpath(path_one) == os.path.normpath(path_two)
