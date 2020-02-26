@@ -15,7 +15,7 @@ class VideoIterator:
         :param num:
         """
         if not fo.check_files(paths_to_videos):
-            raise EnvironmentError("One or more videos not found.")
+            raise ValueError("One or more videos not found.")
 
         self.num = num
         self.videos = {}
@@ -29,16 +29,22 @@ class VideoIterator:
         self.num_frames = 0
         self.load_videos()
 
-    # Will find the smallest video dimensions Assumes that all videos have been initialized.
     def find_min_dims(self):
+        """
+        Will find the smallest video dimensions. Assumes that all videos have been initialized.
+        """
         if self.height is None or self.width is None:
             dims = []
             for video in self.videos.values():
                 dims.append((int(video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))))
             self.width, self.height = ims.return_min(dims)
 
-    # Loads the videos into memory, initializes variables.
     def load_videos(self):
+        """
+        Loads the videos into memory, initializes variables.
+
+        :return:
+        """
         if isinstance(self.paths, str):
             self.last_frame[0] = None
             self.videos[0] = cv2.VideoCapture(self.paths)
@@ -55,7 +61,7 @@ class VideoIterator:
                 self.videos_completed[counter] = False
                 if self.fps != 0:
                     if int(self.fps) != int(self.videos[counter].get(cv2.CAP_PROP_FPS)):
-                        raise EnvironmentError("Video FPS does not match.")
+                        raise ValueError("Video FPS does not match.")
                 else:
                     self.fps = self.videos[counter].get(cv2.CAP_PROP_FPS)
                 self.num_frames = max(self.num_frames, int(self.videos[0].get(cv2.CAP_PROP_FRAME_COUNT)))
@@ -67,7 +73,7 @@ class VideoIterator:
 
     # Returns num frames from all videos. If one video has reached the end, will keep last frame.
     def __next__(self):
-        if not all(val is True for val in self.videos_completed.values()):
+        if not all(self.videos_completed.values()):
             output = []
             for i in range(self.num):
                 if not self.videos_completed[self.active_vid]:
@@ -155,10 +161,13 @@ def make_video_from_array(files_in, dir_out="./", file_name="output", ext_out="m
     if isinstance(files_in, str):
         files_in = [files_in]
     exts = [x for x in set([os.path.splitext(file_name)[1:] for file_name in files_in])]
+
     if width is None or height is None:
         width, height = ims.get_first_dimensions_files(files_in, exts)
+
     vid = cv2.VideoWriter(filename=fo.form_file_name(dir_out, file_name, ext_out),
                           apiPreference=0, fourcc=video_format, fps=fps, frameSize=(width, height))
+
     for image in files_in:
         im = cv2.imread(image)
         vid.write(ims.resize_images([im], (width, height))[0])
@@ -222,7 +231,6 @@ def split_video(file_in: str, dir_out: str, file_name: str = "", ext_out: str = 
     :return:                nothing
     """
 
-    import os
     ext_out = ("" if ext_out[0] == "." else ".") + ext_out
     os.makedirs(dir_out, exist_ok=True)
     vid_iterator = VideoIterator(file_in)
