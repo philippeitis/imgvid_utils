@@ -6,6 +6,7 @@ import numpy as np
 
 from . import file_ops as fo
 
+
 class Resize(Enum):
     RESIZE_UP = 3
     RESIZE_DOWN = 4
@@ -63,7 +64,7 @@ class ImageGenerator:
             self.min_files = len(self.files[0]) - len(self.files[0]) % self.num
             if self.min_files == 0:
                 raise ValueError("No images matching %s found in directories %s."
-                                       % (", ".join(self.ext), ", ".join(self.directories)))
+                                 % (", ".join(self.ext), ", ".join(self.directories)))
 
         else:
             counter = 0
@@ -82,7 +83,7 @@ class ImageGenerator:
 
             if self.min_files == 0:
                 raise ValueError("No images matching %s found in directories %s."
-                                       % (", ".join(self.ext), ", ".join(self.directories)))
+                                 % (", ".join(self.ext), ", ".join(self.directories)))
             self.min_files = len(self.files[0]) - len(self.files[0]) % self.num
 
     def __iter__(self):
@@ -90,6 +91,7 @@ class ImageGenerator:
 
     # Returns num images in array.
     def __next__(self):
+        """ Returns num images in an array. """
         if self.curr_index < self.min_files * len(self.files.keys()):
             output = []
             for i in range(self.num):
@@ -106,8 +108,11 @@ class ImageGenerator:
 
 class ImageGeneratorMatchToName:
     # TODO: allow multiple file extension inputs.
-    # Pass in paths to directories containing images.
     def __init__(self, directories):
+        """
+
+        :param directories: Directories from which to draw images.
+        """
         self.directories = directories
         self.files = {}
         self.num_imgs = 0
@@ -126,8 +131,8 @@ class ImageGeneratorMatchToName:
             elif min_files <= self.num_imgs:
                 self.num_imgs = min_files
 
-    # Loads all image paths into memory.
     def load_dirs(self):
+        """ Finds and stores all file names which exist across all directories. """
         possible_file_names = set()
         if isinstance(self.directories, str):
             self.files[0] = {
@@ -172,12 +177,18 @@ class ImageGeneratorMatchToName:
             raise StopIteration()
 
 
-# Expects an array of images a tuple (x,y) that represents how the images will be stacked, and a mode representing
-# how the array will be stacked:
-# eg. images = [img]*6, dimensions = (2,3), mode='rd':
-# 2 images per row, 3 rows, ordered from left to right, up to down
 def stack_images(images, dimensions, mode='rd'):
-    """ """
+    """
+    Expects an array of images a tuple (x,y) that represents how the images will be stacked, and a mode representing
+    how the array will be stacked:
+
+    eg. images = [img]*6, dimensions = (2,3), mode='rd':
+    2 images per row, 3 rows, ordered from left to right, up to down
+    :param images:
+    :param dimensions:
+    :param mode:
+    :return:
+    """
     x = dimensions[0]
     y = dimensions[1]
     images_stacked = [None] * y
@@ -194,8 +205,13 @@ def stack_images(images, dimensions, mode='rd'):
     return np.concatenate(tuple([np.concatenate(tuple(row), axis=1) for row in images_stacked]), axis=0)
 
 
-# Resizes all of the images in the input to the specified dimensions.
 def resize_images(images, dimensions: (int, int)):
+    """
+    Resizes all of the images to the specified dimensions.
+    :param images:
+    :param dimensions:
+    :return:
+    """
     for i in range(len(images)):
         images[i] = cv2.resize(images[i], dimensions)
     return images
@@ -246,15 +262,31 @@ def make_images_from_folders_match(dirs_in, dir_out, max_imgs=None, cols=1, rows
             break
 
 
-# Draws images with the given extension equally from each folder,
-#  resizes each individual image to width x height, concatenates them according to the mode, and saves them to the
+#
+#
 def make_images_from_folders(dirs_in: Union[List[str], str], ext_in: Union[List[str], str] = 'jpg',
                              dir_out: str = "./", file_name: str = "output", ext_out='jpg', max_imgs: int = None,
                              cols: int = 1, rows: int = 1, width: int = 640, height: int = 480, mode='rd'):
+    """
+    Draws images with the given extension equally from each folder, resizes each
+     individual image to width x height, concatenates them according to the mode, and saves them to dir_out.
+    :param dirs_in:
+    :param ext_in:
+    :param dir_out:
+    :param file_name:
+    :param ext_out:
+    :param max_imgs:
+    :param cols:
+    :param rows:
+    :param width:
+    :param height:
+    :param mode:
+    :return:
+    """
     image_iter = ImageGenerator(dirs_in, ext=ext_in, num=cols * rows)
     os.makedirs(dir_out, exist_ok=True)
     image_iter.set_min_files(max_imgs)
-    num_zeros = len(str(image_iter.min_files // image_iter.num -1))
+    num_zeros = len(str(image_iter.min_files // image_iter.num - 1))
     for counter, images_data in enumerate(image_iter):
         images = images_data.images
         temp_file_name = fo.form_file_name(dir_out, file_name + str(counter).zfill(num_zeros), ext_out)
@@ -407,7 +439,6 @@ def get_min_dimensions_files(files_in: Union[List[str], str], ext_in: Union[List
         return return_min(get_video_dimensions(files_in))
 
 
-#
 def get_max_dimensions_files(files_in: Union[List[str], str], ext_in: Union[List[str], str]):
     """
     Gets the minimum and maximum dimensions of the files in the list with the given extension(s).

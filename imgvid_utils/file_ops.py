@@ -4,13 +4,14 @@ import glob
 from typing import Union, List
 
 
-def check_files(files: List[str], return_missing: bool = False) -> Union[List[str], bool]:
-    """" If return_missing is true, returns an array of any missing files, otherwise, returns a boolean indicating
+def check_files(files: Union[str, List[str]], return_missing: bool = False) -> Union[List[str], bool]:
+    """
+    If return_missing is true, returns an array of any missing files, otherwise, returns a boolean indicating
     that all of the files exist.
 
-    Keyword arguments:
-    files -- one or more files to check.
-    return_missing -- return the missing files (default False).
+    :param files: one or more files to check.
+    :param return_missing: return the missing files (default False).
+    :return:
     """
 
     missing = []
@@ -31,13 +32,14 @@ def check_files(files: List[str], return_missing: bool = False) -> Union[List[st
             return missing
 
 
-def check_dirs(directories: List[str], return_missing: bool = False) -> Union[List[str], bool]:
-    """" If return_missing is true, returns an array of any missing directories, otherwise, returns a boolean indicating
+def check_dirs(directories: Union[str, List[str]], return_missing: bool = False) -> Union[List[str], bool]:
+    """
+    If return_missing is true, returns an array of any missing directories, otherwise, returns a boolean indicating
     that all of the directories exist.
 
-    Keyword arguments:
-    directories -- one or more directories to check.
-    return_missing -- return the missing directories (default False).
+    :param directories: one or more directories to check.
+    :param return_missing: return the missing directories (default False).
+    :return:
     """
 
     missing = []
@@ -59,11 +61,12 @@ def check_dirs(directories: List[str], return_missing: bool = False) -> Union[Li
 
 
 def get_files(directory: str, ext: Union[List[str], str]) -> List[str]:
-    """" Returns a list of file names in the given directory ending in the given extensions
+    """
+    Returns a list of file names in the given directory ending in the given extensions
 
-    Keyword arguments:
-    directories -- one or more directories to search.
-    ext -- one or more extensions to match.
+    :param directory:   one or more directories to search.
+    :param ext:         one or more extensions to match.
+    :return:
     """
     jpg_subset = [".JPG", ".jpeg", ".JPEG", ".jpg"]
     png_subset = [".PNG", ".png"]
@@ -85,22 +88,20 @@ def get_files(directory: str, ext: Union[List[str], str]) -> List[str]:
     directory = append_forward_slash_path(directory)
     frames = [frame for ext1 in extensions
               for frame in glob.glob(f"{directory}*{ext1}")]
-    # sorts, removes duplicates.
-    frames = sorted(list(set(frames)))
-    return frames
+
+    return sorted(list(set(frames)))
 
 
-# Gets the first n videos from the directories specified, as evenly as possibly.
 def get_first_n_files(directories: Union[List[str], str], ext: Union[List[str], str], num: int) -> List[str]:
-    """ Returns the first n files in the directories that match the given extensions, as evenly as possible.
+    """
+    Returns the first n files in the directories that match the given extensions, as evenly as possible.
     In the event that less than num files exist, will return all matches found.
 
-    Keyword arguments:
-    directories -- one or more directories to search.
-    ext -- one or more extensions to match.
-    num -- number of files that should be matched and returned.
+    :param directories: one or more directories to search.
+    :param ext: one or more extensions to match.
+    :param num: number of files that should be matched and returned.
+    :return:
     """
-
     if not isinstance(directories, list):
         directories = [directories]
     dirs = []
@@ -131,17 +132,17 @@ def get_first_n_files(directories: Union[List[str], str], ext: Union[List[str], 
 
 
 def append_forward_slash_path(paths: Union[List[str], str]) -> Union[List[str], str, None]:
-    """ Returns the input string(s), in the same format as they were passed in, with a minimum of one forward slash
+    """
+    Returns the input string(s), in the same format as they were passed in, with a minimum of one forward slash
     at the end, given that no forward slash exists at the end.
 
-    Keyword arguments:
-    paths -- one or more paths to add a forward slash to.
+    :param paths: one or more paths to add a forward slash to.
+    :return:
     """
     if paths is None:
         return None
     if isinstance(paths, str):
         if paths[-1] != "/":
-            print("Appended a / to %s" % paths)
             paths += "/"
         return paths
     else:
@@ -150,11 +151,11 @@ def append_forward_slash_path(paths: Union[List[str], str]) -> Union[List[str], 
 
 
 def clear_files(folder: str, *argv) -> None:
-    """ Clears the given folder of one or more extensions.
-
-    Keyword arguments:
-    folder -- folder to remove extensions from.
-    *argv -- a list of one or more extensions.
+    """
+    Clears the given folder of any and all files that match any extension provided.
+    :param folder: folder to remove extensions from.
+    :param argv: one or more extensions.
+    :return:
     """
     folder = append_forward_slash_path(folder)
     for ext in argv:
@@ -164,12 +165,12 @@ def clear_files(folder: str, *argv) -> None:
 
 
 def form_file_name(dir_out: str, file_name: str, ext: str) -> str:
-    """ Removes excess extensions in the file_name and returns a fully formed file name, cleaned of excess extensions.
-
-    Keyword arguments:
-    dir_out -- path to a directory.
-    file_name -- a file name with zero or more extensions.
-    ext -- the extension the file name should end in.
+    """
+    Removes excess extensions in the file_name and returns a fully formed file name, cleaned of excess extensions.
+    :param dir_out: path to a directory.
+    :param file_name:  a file name with zero or more extensions.
+    :param ext: the extension the file name should end in.
+    :return:
     """
 
     # Needs to check that file_name doesn't contain an extension.
