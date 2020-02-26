@@ -2,9 +2,9 @@ import cv2
 from enum import Enum
 from typing import Union, List
 import os
+import numpy as np
 
 from . import file_ops as fo
-
 
 class Resize(Enum):
     RESIZE_UP = 3
@@ -22,8 +22,15 @@ class ImageDataStore:
 
 class ImageGenerator:
     # TODO: allow multiple file extension inputs.
-    # Pass in paths to directories containing images, and extension of desired image inputs. Will return num images each iteration.
     def __init__(self, directories, ext='jpg', num=1):
+        """
+        Pass in paths to directories containing images, and extension
+        of desired image inputs. Will return num images each iteration.
+
+        :param directories: Input directories.
+        :param ext:         Extension of file to return
+        :param num:         Number of images to return each iteration.
+        """
         self.directories = directories
         self.ext = ext
         self.num = num
@@ -33,13 +40,13 @@ class ImageGenerator:
         self.active_dir = 0
         self.index = {}
         # Checks that all directories are valid.
-        if fo.check_dirs(self.directories):
-            self.load_dirs()
-        else:
-            raise EnvironmentError("One or more directories do not exist.")
+        if not fo.check_dirs(self.directories):
+            raise ValueError("One or more directories do not exist.")
+
+        self.load_dirs()
 
     # Sets the number of files that this iterator will output:
-    # If min_files <= 0, nothing will be returns. If min_files >= self.min_files, self.min_files remains unchanged.
+    # If min_files <= 0, nothing will be returned. If min_files >= self.min_files, self.min_files remains unchanged.
     # Otherwise, self.min_files = min_files.
     def set_min_files(self, min_files: Union[None, int]):
         if min_files is not None:
@@ -55,7 +62,7 @@ class ImageGenerator:
             self.index[0] = 0
             self.min_files = len(self.files[0]) - len(self.files[0]) % self.num
             if self.min_files == 0:
-                raise EnvironmentError("No images matching %s found in directories %s."
+                raise ValueError("No images matching %s found in directories %s."
                                        % (", ".join(self.ext), ", ".join(self.directories)))
 
         else:
@@ -74,7 +81,7 @@ class ImageGenerator:
                     counter += 1
 
             if self.min_files == 0:
-                raise EnvironmentError("No images matching %s found in directories %s."
+                raise ValueError("No images matching %s found in directories %s."
                                        % (", ".join(self.ext), ", ".join(self.directories)))
             self.min_files = len(self.files[0]) - len(self.files[0]) % self.num
 
@@ -110,7 +117,7 @@ class ImageGeneratorMatchToName:
         if fo.check_dirs(self.directories):
             self.load_dirs()
         else:
-            raise EnvironmentError("One or more directories do not exist.")
+            raise ValueError("One or more directories do not exist.")
 
     def set_min_files(self, min_files: Union[None, int]):
         if min_files is not None:
@@ -121,44 +128,43 @@ class ImageGeneratorMatchToName:
 
     # Loads all image paths into memory.
     def load_dirs(self):
-        import os
-        possible_file_names = {}
+        possible_file_names = set()
         if isinstance(self.directories, str):
             self.files[0] = {
                 os.path.basename(f_name): f_name
                 for f_name in fo.get_files(self.directories, ["jpg", "png"])
             }
-            possible_file_names = {key: True for key in self.files}
+            possible_file_names = set(self.files[0].keys())
         else:
-            counter = 0
-            for directory in self.directories:
+            for counter, directory in enumerate(self.directories):
                 files = fo.get_files(self.directories[counter], ["jpg", "png"])
-                if files:
-                    self.files[counter] = {os.path.basename(f_name): f_name
-                                           for f_name in files}
-                    possible_file_names = {key: (key in possible_file_names)
-                                           for key in self.files[counter]}
-                    counter += 1
-                else:
+                if not files:
                     raise ValueError(f"No files found in {directory}")
-        self.possible_file_names_arr = [key for key, val in possible_file_names.items() if val]
-        if self.possible_file_names_arr:
-            self.num_imgs = len(self.possible_file_names_arr)
-        else:
+
+                self.files[counter] = {os.path.basename(f_name): f_name
+                                       for f_name in files}
+                if counter == 0:
+                    possible_file_names = set(self.files[counter].keys())
+                else:
+                    possible_file_names &= set(self.files[counter].keys())
+
+        self.possible_file_names_arr = sorted(list(possible_file_names))
+        self.num_imgs = len(self.possible_file_names_arr)
+
+        if self.num_imgs == 0:
             raise ValueError("No file names in common.")
 
     def __iter__(self):
+        """ Returns all instances of images with matching file names, in alphabetical order. """
         return self
 
-    # Returns num images in array and filename.
     def __next__(self):
-        import os
         if self.curr_index < self.num_imgs:
             output = []
             file_name = self.possible_file_names_arr[self.curr_index]
 
-            for key in self.files.keys():
-                output.append(cv2.imread(self.files[key][file_name]))
+            for file_dict in self.files.values():
+                output.append(cv2.imread(file_dict[file_name]))
             self.curr_index += 1
 
             return ImageDataStore(output, os.path.splitext(file_name)[0], os.path.splitext(file_name)[-1])
@@ -171,7 +177,7 @@ class ImageGeneratorMatchToName:
 # eg. images = [img]*6, dimensions = (2,3), mode='rd':
 # 2 images per row, 3 rows, ordered from left to right, up to down
 def stack_images(images, dimensions, mode='rd'):
-    import numpy as np
+    """ """
     x = dimensions[0]
     y = dimensions[1]
     images_stacked = [None] * y
@@ -214,12 +220,13 @@ def make_images_from_folders_match(dirs_in, dir_out, max_imgs=None, cols=1, rows
                                    resize_opt: Resize = Resize.RESIZE_FIRST, width=None, height=None, mode='rd'):
     image_iter = ImageGeneratorMatchToName(dirs_in)
     counter: int = 0
-    fn = return_first
 
     if resize_opt == Resize.RESIZE_UP:
         fn = return_max
     elif resize_opt == Resize.RESIZE_DOWN:
         fn = return_min
+    else:
+        fn = return_first
 
     image_iter.set_min_files(max_imgs)
     os.makedirs(dir_out, exist_ok=True)
@@ -298,7 +305,7 @@ def get_first_dimensions_dirs(dirs_in: Union[List[str], str], ext_in: Union[List
 # Returns the range of image sizes.
 def get_min_dimensions_dirs(dirs_in: Union[List[str], str], ext_in: Union[List[str], str]):
     if len(dirs_in) == 0:
-        raise Exception("Insufficient directories.")
+        raise ValueError("Insufficient directories.")
 
     if isinstance(dirs_in, str):
         return get_min_dimensions_files(fo.get_files(dirs_in, ext_in), ext_in)
@@ -318,7 +325,7 @@ def get_min_dimensions_dirs(dirs_in: Union[List[str], str], ext_in: Union[List[s
 # Returns the range of image sizes.
 def get_max_dimensions_dirs(dirs_in: Union[List[str], str], ext_in: Union[List[str], str]):
     if len(dirs_in) == 0:
-        raise Exception("Insufficient directories.")
+        raise ValueError("Insufficient directories.")
 
     if isinstance(dirs_in, str):
         return get_max_dimensions_files(fo.get_files(dirs_in, ext_in), ext_in)
