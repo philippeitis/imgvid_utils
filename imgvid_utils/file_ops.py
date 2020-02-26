@@ -1,3 +1,6 @@
+import os
+import glob
+
 from typing import Union, List
 
 
@@ -11,7 +14,6 @@ def check_files(files: List[str], return_missing: bool = False) -> Union[List[st
     """
 
     missing = []
-    import os
     if isinstance(files, str):
         if os.path.exists(files) and os.path.isfile(files):
             return [] if return_missing else True
@@ -39,7 +41,6 @@ def check_dirs(directories: List[str], return_missing: bool = False) -> Union[Li
     """
 
     missing = []
-    import os
     if isinstance(directories, str):
         if os.path.exists(directories) and os.path.isdir(directories):
             return [] if return_missing else True
@@ -58,7 +59,6 @@ def check_dirs(directories: List[str], return_missing: bool = False) -> Union[Li
 
 
 def get_files(directory: str, ext: Union[List[str], str]) -> List[str]:
-    import glob
     """" Returns a list of file names in the given directory ending in the given extensions
 
     Keyword arguments:
@@ -156,14 +156,11 @@ def clear_files(folder: str, *argv) -> None:
     folder -- folder to remove extensions from.
     *argv -- a list of one or more extensions.
     """
-    from os import remove
-    from os import path
-    from glob import glob
     folder = append_forward_slash_path(folder)
     for ext in argv:
         ext = ("." if ext[0] != "." else "") + ext
-        for f in glob(path.join(folder) + "*" + ext):
-            remove(f)
+        for f in glob.glob(os.path.join(folder) + "*" + ext):
+            os.remove(f)
 
 
 def form_file_name(dir_out: str, file_name: str, ext: str) -> str:
@@ -176,9 +173,8 @@ def form_file_name(dir_out: str, file_name: str, ext: str) -> str:
     """
 
     # Needs to check that file_name doesn't contain an extension.
-    from os import path
-    split_name = path.splitext(file_name)
+    split_name = os.path.splitext(file_name)
     ext = ("." if ext[0] != "." else "") + ext
     if len(split_name) > 1:
         file_name = ".".join(split_name[:-1])
-    return path.join(dir_out, file_name + ext)
+    return os.path.join(dir_out, file_name + ext)
