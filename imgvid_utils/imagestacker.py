@@ -3,9 +3,7 @@ from enum import Enum
 from typing import Union, List
 import os
 
-import file_ops as fo
-import videostacker as vs
-import imagestacker as ims
+from . import file_ops as fo
 
 
 class Resize(Enum):

@@ -3,9 +3,8 @@ from typing import Union, List
 import cv2
 import os
 
-import file_ops as fo
-import videostacker as vs
-import imagestacker as ims
+from . import file_ops as fo
+from . import imagestacker as ims
 
 
 class VideoIterator:
