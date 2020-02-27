@@ -1,6 +1,6 @@
 import cv2
 from enum import Enum
-from typing import Union, List
+from typing import Union, List, Iterable, Collection
 import os
 import numpy as np
 
@@ -514,7 +514,7 @@ def get_max_dimensions_dirs(
 
 
 def get_first_dimensions_files(
-    files_in: Union[List[str], str], ext_in: Union[List[str], str]
+    files_in: Union[Iterable[str], str], ext_in: Union[Collection[str], str]
 ):
     """
     Will get the dimensions of the first file in files_in
@@ -640,5 +640,4 @@ def return_min(list_of_dims):
     :param list_of_dims: A list of dimensions.
     :return:             The dimensions with the minimum area.
     """
-
     return min(list_of_dims, key=lambda dim: dim[0] * dim[1])

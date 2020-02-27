@@ -195,7 +195,7 @@ def make_video_from_array(
     # apiPreference may be required depending on cv2 version.
     if isinstance(files_in, str):
         files_in = [files_in]
-    exts = [x for x in set([os.path.splitext(file_name)[1:] for file_name in files_in])]
+    exts = set([os.path.splitext(file_name)[-1] for file_name in files_in])
 
     if width is None or height is None:
         width, height = ims.get_first_dimensions_files(files_in, exts)
