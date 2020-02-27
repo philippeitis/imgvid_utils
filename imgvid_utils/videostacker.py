@@ -36,7 +36,12 @@ class VideoIterator:
         if self.height is None or self.width is None:
             dims = []
             for video in self.videos.values():
-                dims.append((int(video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))))
+                dims.append(
+                    (
+                        int(video.get(cv2.CAP_PROP_FRAME_WIDTH)),
+                        int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+                    )
+                )
             self.width, self.height = ims.return_min(dims)
 
     def load_videos(self):
@@ -64,7 +69,9 @@ class VideoIterator:
                         raise ValueError("Video FPS does not match.")
                 else:
                     self.fps = self.videos[counter].get(cv2.CAP_PROP_FPS)
-                self.num_frames = max(self.num_frames, int(self.videos[0].get(cv2.CAP_PROP_FRAME_COUNT)))
+                self.num_frames = max(
+                    self.num_frames, int(self.videos[0].get(cv2.CAP_PROP_FRAME_COUNT))
+                )
                 counter += 1
             self.find_min_dims()
 
@@ -95,8 +102,19 @@ class VideoIterator:
 #  cols, rows, [dimension altering], width, height, mode
 
 # TODO: add support for more video formats
-def make_video_from_images(dirs_in, ext_in="jpg", dir_out="./", file_name="output", ext_out="mp4",
-                           video_format='mp4v', fps=24, cols=1, rows=1, width=None, height=None):
+def make_video_from_images(
+    dirs_in,
+    ext_in="jpg",
+    dir_out="./",
+    file_name="output",
+    ext_out="mp4",
+    video_format="mp4v",
+    fps=24,
+    cols=1,
+    rows=1,
+    width=None,
+    height=None,
+):
     """Creates, and saves a video with the file_name, encoded using video_format containing each video in files_in,
     containing each image in dirs_in with the appropriate extension, in order of appearance, with each individual image
     resized to width, height, stacked col x row.
@@ -129,15 +147,32 @@ def make_video_from_images(dirs_in, ext_in="jpg", dir_out="./", file_name="outpu
     video_format = cv2.VideoWriter_fourcc(*video_format)
     # apiPreference may be required depending on cv2 version.
     image_iter = ims.ImageGenerator(dirs_in, ext_in, cols * rows)
-    vid = cv2.VideoWriter(filename=fo.form_file_name(dir_out, file_name, ext_out),
-                          apiPreference=0, fourcc=video_format, fps=fps, frameSize=(width * cols, height * rows))
+    vid = cv2.VideoWriter(
+        filename=fo.form_file_name(dir_out, file_name, ext_out),
+        apiPreference=0,
+        fourcc=video_format,
+        fps=fps,
+        frameSize=(width * cols, height * rows),
+    )
     for images_data in image_iter:
-        vid.write(ims.stack_images(ims.resize_images(images_data.images, (width, height)), (cols, rows)))
+        vid.write(
+            ims.stack_images(
+                ims.resize_images(images_data.images, (width, height)), (cols, rows)
+            )
+        )
     vid.release()
 
 
-def make_video_from_array(files_in, dir_out="./", file_name="output", ext_out="mp4",
-                          video_format='mp4v', fps=24, width=None, height=None):
+def make_video_from_array(
+    files_in,
+    dir_out="./",
+    file_name="output",
+    ext_out="mp4",
+    video_format="mp4v",
+    fps=24,
+    width=None,
+    height=None,
+):
     """ Creates, and saves a video with the file_name, encoded using video_format containing each video in files_in,
     containing each image in files_in in order of appearance, with each individual image resized to width, height.
 
@@ -165,8 +200,13 @@ def make_video_from_array(files_in, dir_out="./", file_name="output", ext_out="m
     if width is None or height is None:
         width, height = ims.get_first_dimensions_files(files_in, exts)
 
-    vid = cv2.VideoWriter(filename=fo.form_file_name(dir_out, file_name, ext_out),
-                          apiPreference=0, fourcc=video_format, fps=fps, frameSize=(width, height))
+    vid = cv2.VideoWriter(
+        filename=fo.form_file_name(dir_out, file_name, ext_out),
+        apiPreference=0,
+        fourcc=video_format,
+        fps=fps,
+        frameSize=(width, height),
+    )
 
     for image in files_in:
         im = cv2.imread(image)
@@ -176,9 +216,17 @@ def make_video_from_array(files_in, dir_out="./", file_name="output", ext_out="m
 
 # Input paths should be video files. Output should be full path.
 # Will stack or videos in directory x by y, and resize each input image to width by height px.
-def make_video_from_videos(files_in: Union[List[str], str], dir_out: str = "./", file_name: str = "output",
-                           ext_out: str = "mp4", video_format: str = 'mp4v',
-                           cols: int = 1, rows: int = 1, width: int = None, height: int = None) -> None:
+def make_video_from_videos(
+    files_in: Union[List[str], str],
+    dir_out: str = "./",
+    file_name: str = "output",
+    ext_out: str = "mp4",
+    video_format: str = "mp4v",
+    cols: int = 1,
+    rows: int = 1,
+    width: int = None,
+    height: int = None,
+) -> None:
     """ Creates, and saves a video with the file_name, encoded using video_format containing each video in files_in,
     stacked col x row, in order of appearance, with each individual video frame resized to width, height.
 
@@ -206,17 +254,31 @@ def make_video_from_videos(files_in: Union[List[str], str], dir_out: str = "./",
     if height is None:
         height = video_iter.height
 
-    vid = cv2.VideoWriter(filename=fo.form_file_name(dir_out, file_name, ext_out), apiPreference=0,
-                          fourcc=video_format, fps=video_iter.fps, frameSize=(width * cols, height * rows))
+    vid = cv2.VideoWriter(
+        filename=fo.form_file_name(dir_out, file_name, ext_out),
+        apiPreference=0,
+        fourcc=video_format,
+        fps=video_iter.fps,
+        frameSize=(width * cols, height * rows),
+    )
     for images in video_iter:
-        vid.write(ims.stack_images(ims.resize_images(images, (width, height)), (cols, rows)))
+        vid.write(
+            ims.stack_images(ims.resize_images(images, (width, height)), (cols, rows))
+        )
     vid.release()
 
 
 # Splits video into a given number of frames, or all frames if frame_count = -1, and saves frames to output_dir,
 # with sequential filenames (eg. 0000.png, 0001.png ... 9999.png, 0000.png is frame #1)
-def split_video(file_in: str, dir_out: str, file_name: str = "", ext_out: str = "png", frame_count: int = -1,
-                start_frame: int = 0, end_frame: int = -1):
+def split_video(
+    file_in: str,
+    dir_out: str,
+    file_name: str = "",
+    ext_out: str = "png",
+    frame_count: int = -1,
+    start_frame: int = 0,
+    end_frame: int = -1,
+):
     """ Takes each individual frame from the video file_in, and outputs it as an image with the file_name followed by a
     padded counter corresponding to that image's position in the video (eg. 0001) to dir_out. ext_out,
     starting at start_frame and going to end_frame. Outputs frame_count stills if end_frame is not specified.
@@ -238,14 +300,18 @@ def split_video(file_in: str, dir_out: str, file_name: str = "", ext_out: str = 
     if end_frame != -1 and frame_count == -1:
         frame_count = min(end_frame, num_frames) - start_frame
     else:
-        frame_count: int = min(frame_count, num_frames) if frame_count != -1 else num_frames
+        frame_count: int = min(
+            frame_count, num_frames
+        ) if frame_count != -1 else num_frames
     if frame_count < 1:
         raise ValueError("Values passed in result in no or negative frames of output.")
     num_zeros = len(str(frame_count - 1))
     for frame, counter in zip(vid_iterator, range(0, num_frames)):
         if frame_count > counter - start_frame >= 0:
-            temp_name = os.path.join(dir_out,
-                                     f"{file_name}{str(counter - start_frame).zfill(num_zeros)}{ext_out}")
+            temp_name = os.path.join(
+                dir_out,
+                f"{file_name}{str(counter - start_frame).zfill(num_zeros)}{ext_out}",
+            )
             print("saving to %s" % temp_name)
             cv2.imwrite(temp_name, frame[0])
         elif counter > start_frame + frame_count:

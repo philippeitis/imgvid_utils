@@ -4,7 +4,9 @@ import glob
 from typing import Union, List
 
 
-def check_files(files: Union[str, List[str]], return_missing: bool = False) -> Union[List[str], bool]:
+def check_files(
+    files: Union[str, List[str]], return_missing: bool = False
+) -> Union[List[str], bool]:
     """
     If return_missing is true, returns an array of any missing files, otherwise, returns a boolean indicating
     that all of the files exist.
@@ -32,7 +34,9 @@ def check_files(files: Union[str, List[str]], return_missing: bool = False) -> U
             return missing
 
 
-def check_dirs(directories: Union[str, List[str]], return_missing: bool = False) -> Union[List[str], bool]:
+def check_dirs(
+    directories: Union[str, List[str]], return_missing: bool = False
+) -> Union[List[str], bool]:
     """
     If return_missing is true, returns an array of any missing directories, otherwise, returns a boolean indicating
     that all of the directories exist.
@@ -78,7 +82,7 @@ def get_files(directory: str, ext: Union[List[str], str]) -> List[str]:
         elif "png" in ext.lower():
             extensions = png_subset
         elif "mp4" in ext.lower():
-            extensions = ['.mp4', '.MP4']
+            extensions = [".mp4", ".MP4"]
         else:
             extensions = [ext]
     else:
@@ -86,13 +90,16 @@ def get_files(directory: str, ext: Union[List[str], str]) -> List[str]:
 
     extensions = [("." if extx[0] != "." else "") + extx for extx in extensions]
     directory = append_forward_slash_path(directory)
-    frames = [frame for ext1 in extensions
-              for frame in glob.glob(f"{directory}*{ext1}")]
+    frames = [
+        frame for ext1 in extensions for frame in glob.glob(f"{directory}*{ext1}")
+    ]
 
     return sorted(list(set(frames)))
 
 
-def get_first_n_files(directories: Union[List[str], str], ext: Union[List[str], str], num: int) -> List[str]:
+def get_first_n_files(
+    directories: Union[List[str], str], ext: Union[List[str], str], num: int
+) -> List[str]:
     """
     Returns the first n files in the directories that match the given extensions, as evenly as possible.
     In the event that less than num files exist, will return all matches found.
@@ -131,7 +138,9 @@ def get_first_n_files(directories: Union[List[str], str], ext: Union[List[str], 
     return output
 
 
-def append_forward_slash_path(paths: Union[List[str], str]) -> Union[List[str], str, None]:
+def append_forward_slash_path(
+    paths: Union[List[str], str]
+) -> Union[List[str], str, None]:
     """
     Returns the input string(s), in the same format as they were passed in, with a minimum of one forward slash
     at the end, given that no forward slash exists at the end.
