@@ -290,9 +290,9 @@ def split_video(
     :param frame_count:     number of frames to save, starting at start frame. Overrides end_frame. (default -1, or all)
     :param start_frame:     first frame of video to save (default 0, beginning of video)
     :param end_frame:       frame of video to save to (not including) (default -1, end of video)
-    :return:                nothing
+    :return:                Frame names in sequential order.
     """
-
+    frames = []
     ext_out = ("" if ext_out[0] == "." else ".") + ext_out
     os.makedirs(dir_out, exist_ok=True)
     vid_iterator = VideoIterator(file_in)
@@ -306,13 +306,17 @@ def split_video(
     if frame_count < 1:
         raise ValueError("Values passed in result in no or negative frames of output.")
     num_zeros = len(str(frame_count - 1))
+
     for frame, counter in zip(vid_iterator, range(0, num_frames)):
+        # Need to eat initial video frames.
         if frame_count > counter - start_frame >= 0:
             temp_name = os.path.join(
                 dir_out,
                 f"{file_name}{str(counter - start_frame).zfill(num_zeros)}{ext_out}",
             )
-            print("saving to %s" % temp_name)
+            frames.append(temp_name)
             cv2.imwrite(temp_name, frame[0])
         elif counter > start_frame + frame_count:
-            return
+            return frames
+
+    return frames
