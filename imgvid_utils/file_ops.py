@@ -1,6 +1,5 @@
 import os
 import glob
-import re
 
 from typing import Union, List
 
@@ -73,7 +72,7 @@ def match_all_cases(strx: str):
     :param strx: Any string.
     :return:     Returns a regex which will match the same string.
     """
-    return "".join("[%s%s]" % (c.lower(), c.upper()) if c.isalpha() else re.escape(c) for c in strx)
+    return "".join("[%s%s]" % (c.lower(), c.upper()) if c.isalpha() else c for c in strx)
 
 
 def get_files(directory: str, ext: Union[List[str], str]) -> List[str]:
