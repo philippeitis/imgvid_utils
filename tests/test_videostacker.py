@@ -11,8 +11,11 @@ class TestVideoStacker(unittest.TestCase):
     def assertFilePathEqual(self, path_one, path_two):
         return os.path.normpath(path_one) == os.path.normpath(path_two)
 
+    def test_video_raises_error_on_non_existent_file(self):
+        self.assertRaises(ValueError, vs.split_video, "./test_files/i_do_not_exist.mp4", "temp/")
+
     def test_videosplit(self):
-        # vs.split_video("./imgvid_utils/test_files/00000.MTS", "temp/", "kitty", "png", frame_count=100, start_frame=15)
+        # vs.split_video("./tests/test_files/00000.MTS", "temp/", "kitty", "png", frame_count=100, start_frame=15)
         # self.assertEqual(100, len(fo.get_files("./temp/", "png")))
         # files = fo.get_files("./temp", "png")
         # for i in range(100):
@@ -47,6 +50,7 @@ class TestVideoStacker(unittest.TestCase):
         # self.assertEqual(1600, width_vid)
         # self.assertEqual(600, height_vid)
         pass
+
 
 if __name__ == '__main__':
     unittest.main()
