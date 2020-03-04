@@ -1,5 +1,6 @@
 import os
 import glob
+import re
 
 from typing import Union, List
 
@@ -64,6 +65,17 @@ def check_dirs(
             return missing
 
 
+def match_all_cases(strx: str):
+    """
+    Exists to provide compatibility for Unix systems.
+    Source: https://stackoverflow.com/questions/8151300/ignore-case-in-glob-on-linux
+
+    :param strx: Any string.
+    :return:     Returns a regex which will match the same string.
+    """
+    return "".join("[%s%s]" % (c.lower(), c.upper()) if c.isalpha() else re.escape(c) for c in strx)
+
+
 def get_files(directory: str, ext: Union[List[str], str]) -> List[str]:
     """
     Returns a list of file names in the given directory ending in the given extensions
@@ -72,8 +84,8 @@ def get_files(directory: str, ext: Union[List[str], str]) -> List[str]:
     :param ext:         one or more extensions to match.
     :return:
     """
-    jpg_subset = [".JPG", ".jpeg", ".JPEG", ".jpg"]
-    png_subset = [".PNG", ".png"]
+    jpg_subset = [".jpeg", ".jpg"]
+    png_subset = [".png"]
     if ext is None:
         extensions = jpg_subset + png_subset
     elif isinstance(ext, str):
@@ -91,7 +103,7 @@ def get_files(directory: str, ext: Union[List[str], str]) -> List[str]:
     extensions = [("." if extx[0] != "." else "") + extx for extx in extensions]
     directory = append_forward_slash_path(directory)
     frames = [
-        frame for ext1 in extensions for frame in glob.glob(f"{directory}*{ext1}")
+        frame for ext1 in extensions for frame in glob.glob(f"{directory}*{match_all_cases(ext1)}")
     ]
 
     return sorted(list(set(frames)))
