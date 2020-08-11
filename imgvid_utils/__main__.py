@@ -63,19 +63,43 @@ if __name__ == "__main__":
     )
 
     if args.to_vid:
-        if args.dirs_in and set(args.ext_in) != {"mp4"}:
-            vs.make_video_from_images(
-                args.dirs_in,
-                args.ext_in,
-                args.dir_out,
-                args.name,
-                args.ext_out,
-                fps=args.fps,
-                cols=args.cols,
-                rows=args.rows,
-                width=image_width,
-                height=image_height,
-            )
+        if args.dirs_in:
+            if ap.has_image_exts(args.ext_in):
+                vs.make_video_from_images(
+                    args.dirs_in,
+                    args.ext_in,
+                    args.dir_out,
+                    args.name,
+                    args.ext_out,
+                    cols=args.cols,
+                    rows=args.rows,
+                    width=image_width,
+                    height=image_height,
+                    fps=args.fps,
+                )
+            else:
+                files_in = fo.get_first_n_files(
+                    args.dirs_in, args.ext_in, args.cols * args.rows
+                )
+                if len(files_in) != args.cols * args.rows:
+                    raise ValueError(
+                        "Insufficient files found in %s" % ", ".join(args.dirs_in)
+                    )
+                print(
+                    "Automatically selected these video files to concatenate: %s"
+                    % (", ".join(files_in))
+                )
+                vs.make_video_from_videos(
+                    files_in,
+                    args.dir_out,
+                    args.name,
+                    args.ext_out,
+                    cols=args.cols,
+                    rows=args.rows,
+                    width=image_width,
+                    height=image_height,
+                )
+
         elif args.files_in:
             vs.make_video_from_videos(
                 args.files_in,
@@ -87,31 +111,9 @@ if __name__ == "__main__":
                 width=image_width,
                 height=image_height,
             )
-        else:
-            files_in = fo.get_first_n_files(
-                args.dirs_in, args.ext_in, args.cols * args.rows
-            )
-            if len(files_in) != args.cols * args.rows:
-                raise ValueError(
-                    "Insufficient files found in %s" % ", ".join(args.dirs_in)
-                )
-            print(
-                "Automatically selected these video files to concatenate: %s"
-                % (", ".join(files_in))
-            )
-            vs.make_video_from_videos(
-                files_in,
-                args.dir_out,
-                args.name,
-                args.ext_out,
-                cols=args.cols,
-                rows=args.rows,
-                width=image_width,
-                height=image_height,
-            )
 
     else:
-        if args.files_in is not None:
+        if args.files_in:
             ims.make_image_from_images(
                 args.files_in,
                 args.dir_out,

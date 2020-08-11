@@ -25,7 +25,7 @@ def parse_arguments():
         nargs="+",
         type=str,
         help="List any images or videos you want to use. Not compatible"
-        "with -to_imgs, dirs_in. If -to_vid, must be videos.",
+             "with -to_imgs, dirs_in. If -to_vid, must be videos.",
     )
 
     parser.add_argument(
@@ -45,7 +45,7 @@ def parse_arguments():
         choices=["png", "jpg", "mp4"],
         default="jpg",
         help="Outputs file with given extension."
-        " Overriden by --to_vid, --to_img, and --to_imgs",
+             " Overriden by --to_vid, --to_img, and --to_imgs",
     )
 
     parser.add_argument(
@@ -78,8 +78,8 @@ def parse_arguments():
         dest="to_vid",
         action="store_true",
         help="Will output a video file (default 30fps, .mp4). Not compatible with --to_img."
-        " If multiple directories are provided, will only use first x*y videos."
-        " If one directory is provided, will use first x*y videos.",
+             " If multiple directories are provided, will only use first x*y videos."
+             " If one directory is provided, will use first x*y videos.",
     )
 
     output_formats.add_argument(
@@ -96,7 +96,7 @@ def parse_arguments():
         nargs=2,
         type=int,
         help="Sets the dimensions of the input image. "
-        "Not compatible with -resize_out or -resize_down or -resize_up",
+             "Not compatible with -resize_out or -resize_down or -resize_up",
     )
     resize_in_out.add_argument(
         "--resize_out",
@@ -104,7 +104,7 @@ def parse_arguments():
         nargs=2,
         type=int,
         help="Sets the dimensions of the output image. "
-        "Not compatible with -resize_in or -resize_down or -resize_up",
+             "Not compatible with -resize_in or -resize_down or -resize_up",
     )
 
     resize_opts = parser.add_mutually_exclusive_group()
@@ -113,23 +113,23 @@ def parse_arguments():
         dest="resize_up",
         action="store_true",
         help="Resizes all input images to the largest image in the set. "
-        "Computed by area of image (eg. width * height). Will override --resize_in, --resize_out."
-        " Not compatible with -resize_down, -resize_first.",
+             "Computed by area of image (eg. width * height). Will override --resize_in, --resize_out."
+             " Not compatible with -resize_down, -resize_first.",
     )
     resize_opts.add_argument(
         "--resize_down",
         dest="resize_down",
         action="store_true",
         help="Resizes all input images to the smallest image in the set. "
-        "Computed by area of image (eg. width * height). Will override --resize_in, --resize_out."
-        " Not compatible with --resize_up, --resize_first",
+             "Computed by area of image (eg. width * height). Will override --resize_in, --resize_out."
+             " Not compatible with --resize_up, --resize_first",
     )
     resize_opts.add_argument(
         "--resize_first",
         dest="resize_first",
         action="store_true",
         help="Resizes all input images to first small image in the set. --resize_in, --resize_out. "
-        " Not compatible with --resize_up, --resize_down.",
+             " Not compatible with --resize_up, --resize_down.",
     )
 
     parser.add_argument(
@@ -165,7 +165,7 @@ def parse_arguments():
         "--read_matching_file_names",
         action="store_true",
         help="Will concatenate files with the same name from each directory,"
-        " and will resize on a per image basis unless a width and height are specified.",
+             " and will resize on a per image basis unless a width and height are specified.",
     )
 
     args = parser.parse_args()
@@ -186,6 +186,12 @@ def parse_arguments():
             args.ext_out = "mp4"
             print("Output extension automatically set to %s." % args.ext_in)
 
+    if args.read_matching_file_names:
+        if not args.dirs_in:
+            parser.error("--read_matching_file_names requires --dirs_in to be specified.")
+        if args.cols * args.rows != len(args.dirs_in):
+            parser.error(f"Provided --dirs_in of {len(args.dirs_in)} directories and output stacking"
+                         f" of {args.cols} by {args.rows} images are not compatible.")
     return args
 
 
