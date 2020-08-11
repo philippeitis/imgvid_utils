@@ -15,7 +15,7 @@ def get_correct_dimensions(args):
         image_height //= args.rows
         return image_width, image_height
 
-    if args.dirs_in is not None:
+    if args.dirs_in:
         return ims.get_dimensions_dirs(
             args.dirs_in, args.ext_in, ap.get_resize_enum(args)
         )
@@ -26,10 +26,10 @@ def get_correct_dimensions(args):
 
 
 if __name__ == "__main__":
-    import arg_parser as ap
-    import videostacker as vs
-    import imagestacker as ims
-    import file_ops as fo
+    from . import arg_parser as ap
+    from . import videostacker as vs
+    from . import imagestacker as ims
+    from . import file_ops as fo
 
     import os
 
@@ -63,8 +63,7 @@ if __name__ == "__main__":
     )
 
     if args.to_vid:
-        print(args)
-        if args.dirs_in is not None and args.ext_in not in ["mp4"]:
+        if args.dirs_in and set(args.ext_in) != {"mp4"}:
             vs.make_video_from_images(
                 args.dirs_in,
                 args.ext_in,
@@ -77,7 +76,7 @@ if __name__ == "__main__":
                 width=image_width,
                 height=image_height,
             )
-        elif args.files_in is not None:
+        elif args.files_in:
             vs.make_video_from_videos(
                 args.files_in,
                 args.dir_out,

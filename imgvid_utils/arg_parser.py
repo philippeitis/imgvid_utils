@@ -10,36 +10,44 @@ def parse_arguments():
 
     parser = argparse.ArgumentParser()
     # TODO: excess images in directory? Insufficient images in directory?
-    parser.add_argument(
+
+    sources = parser.add_mutually_exclusive_group(required=True)
+    sources.add_argument(
         "--dirs_in",
         dest="dirs_in",
-        nargs="*",
+        nargs="+",
         type=str,
         help="List any directories you want to use.",
     )
-    parser.add_argument(
+    sources.add_argument(
         "--files_in",
         dest="files_in",
-        nargs="*",
+        nargs="+",
         type=str,
         help="List any images or videos you want to use. Not compatible"
         "with -to_imgs, dirs_in. If -to_vid, must be videos.",
     )
+
     parser.add_argument(
         "--ext_in",
         dest="ext_in",
         type=str,
+        nargs="*",
         choices=["png", "jpg", "mp4"],
-        help="Will select files with given extension for input.",
+        default=["png", "jpg"],
+        help="Will select files with given extension for input. Ignored if --files_in provided.",
     )
+
     parser.add_argument(
         "--ext_out",
         dest="ext_out",
         type=str,
         choices=["png", "jpg", "mp4"],
+        default="jpg",
         help="Outputs file with given extension."
-        " Overriden by -to_vid, -to_img, and -to_imgs",
+        " Overriden by --to_vid, --to_img, and --to_imgs",
     )
+
     parser.add_argument(
         "--dir_out",
         dest="dir_out",
@@ -47,6 +55,7 @@ def parse_arguments():
         default="./output/",
         help="Output directory.",
     )
+
     parser.add_argument(
         "--name",
         dest="name",
@@ -54,7 +63,17 @@ def parse_arguments():
         default="file",
         help="File name. Do not include in dir_out",
     )
-    parser.add_argument(
+
+    output_formats = parser.add_mutually_exclusive_group()
+
+    # output_formats.add_argument(
+    #     "--to_img",
+    #     dest="to_img",
+    #     action="store_true",
+    #     help="Will output an image file (default .jpg). Not compatible with --to_vid",
+    # )
+
+    output_formats.add_argument(
         "--to_vid",
         dest="to_vid",
         action="store_true",
@@ -62,20 +81,16 @@ def parse_arguments():
         " If multiple directories are provided, will only use first x*y videos."
         " If one directory is provided, will use first x*y videos.",
     )
-    parser.add_argument(
-        "--to_img",
-        dest="to_img",
-        action="store_true",
-        help="Will output an image file (default .jpg). Not compatible with --to_vid",
-    )
-    parser.add_argument(
+
+    output_formats.add_argument(
         "--to_imgs",
         dest="to_imgs",
         action="store_true",
         help="Will output many image files (default .jpg)",
     )
 
-    parser.add_argument(
+    resize_in_out = parser.add_mutually_exclusive_group()
+    resize_in_out.add_argument(
         "--resize_in",
         dest="resize_in",
         nargs=2,
@@ -83,7 +98,7 @@ def parse_arguments():
         help="Sets the dimensions of the input image. "
         "Not compatible with -resize_out or -resize_down or -resize_up",
     )
-    parser.add_argument(
+    resize_in_out.add_argument(
         "--resize_out",
         dest="resize_out",
         nargs=2,
@@ -91,7 +106,9 @@ def parse_arguments():
         help="Sets the dimensions of the output image. "
         "Not compatible with -resize_in or -resize_down or -resize_up",
     )
-    parser.add_argument(
+
+    resize_opts = parser.add_mutually_exclusive_group()
+    resize_opts.add_argument(
         "--resize_up",
         dest="resize_up",
         action="store_true",
@@ -99,7 +116,7 @@ def parse_arguments():
         "Computed by area of image (eg. width * height). Will override --resize_in, --resize_out."
         " Not compatible with -resize_down, -resize_first.",
     )
-    parser.add_argument(
+    resize_opts.add_argument(
         "--resize_down",
         dest="resize_down",
         action="store_true",
@@ -107,7 +124,7 @@ def parse_arguments():
         "Computed by area of image (eg. width * height). Will override --resize_in, --resize_out."
         " Not compatible with --resize_up, --resize_first",
     )
-    parser.add_argument(
+    resize_opts.add_argument(
         "--resize_first",
         dest="resize_first",
         action="store_true",
@@ -155,40 +172,45 @@ def parse_arguments():
     args.dir_out = fo.append_forward_slash_path(args.dir_out)
     args.dirs_in = fo.append_forward_slash_path(args.dirs_in)
     validate_arguments(args)
-    if args.ext_in == "mp4":
+
+    if mixed_ext(args.ext_in):
+        parser.error("Must have exclusively image or video extensions.")
+
+    if has_video_exts(args.ext_in):
+        if args.to_imgs:
+            parser.error("Can not select --to_imgs and have videos in ext in")
         args.to_vid = True
-    # Set default extension if none given
-    if args.ext_in is None and args.dirs_in is not None:
-        args.ext_in = ["png", "jpg"]
-        print("Input extension set to %s." % (",".join(args.ext_in),))
 
     if args.to_vid:
         if args.ext_out not in ["mp4"]:
             args.ext_out = "mp4"
             print("Output extension automatically set to %s." % args.ext_in)
 
-    if args.ext_out is None:
-        args.ext_out = "jpg"
-        print("Output extension automatically set to %s." % args.ext_out)
-
-    print(args)
     return args
 
 
+def has_video_exts(exts):
+    return bool(set(exts).intersection({"mp4"}))
+
+
+def has_image_exts(exts):
+    return bool(set(exts).intersection({"png", "jpg"}))
+
+
+def mixed_ext(exts):
+    return has_image_exts(exts) and has_video_exts(exts)
+
+
 def get_ext(args):
-    if args.files_in is not None:
-        ext_in = os.path.splitext(args.files_in[0])[1]
-        return ext_in[1:]
+    ext_in = os.path.splitext(args.files_in[0])[1]
+    return ext_in[1:]
 
 
 # Checks if the extensions are equivalent.
 def check_ext(ext1: str, ext2: str):
-    if ext1.lower() == ext2.lower():
-        return True
-    elif ext1.lower() in [".png", ".jpg"] and ext2.lower() in [".png", ".jpg"]:
-        return True
-    else:
-        return False
+    ext1 = ext1.lower().strip(".")
+    ext2 = ext2.lower().strip(".")
+    return mixed_ext([ext1, ext2])
 
 
 # Assumes args has resize_up, resize_down, and resize_first
@@ -231,12 +253,10 @@ class PluralizableString:
 
 # Checks that all file paths are correct and that no conflicting variables exist.
 def validate_arguments(args):
-    if args.dirs_in is not None and args.files_in is not None:
-        raise EnvironmentError("Can only specify -dirs_in or -files_in")
-    if args.dirs_in is not None and (args.to_img or args.to_imgs) and not args.ext_in:
-        raise EnvironmentError("No extension specified for images. ")
-    if args.dirs_in is not None:
-        missing_dirs = fo.check_dirs(args.dirs_in, return_missing=True)
+    if args.dirs_in:
+        if args.to_imgs and not args.ext_in:
+            raise EnvironmentError("No extension specified for images.")
+        missing_dirs = fo.get_missing_dirs(args.dirs_in)
         if len(missing_dirs) != 0:
             pl = IsPlural(missing_dirs)
             dir_str = PluralizableString("director", "y", "ies", pl)
@@ -246,7 +266,7 @@ def validate_arguments(args):
                 % (dir_str, ", ".join(missing_dirs), do_str)
             )
 
-    if args.files_in is not None:
+    if args.files_in:
         if len(args.files_in) < args.cols * args.rows:
             raise EnvironmentError(
                 "Not enough photos given to generate an image or video of dimensions %d by %d (requires %d images or "
@@ -261,25 +281,10 @@ def validate_arguments(args):
             if not check_ext(first_ext[1], os.path.splitext(path)[1]):
                 raise EnvironmentError("Video and image files can not be included.")
 
-        missing_files = fo.check_files(args.files_in, return_missing=True)
+        missing_files = fo.get_missing_files(args.files_in)
         if len(missing_files) != 0:
             file_str = PluralizableString("file", "", "s", IsPlural(missing_files))
             raise EnvironmentError(
                 "The %s specified at %s does not exist."
                 % (file_str, ", ".join(missing_files))
             )
-
-    if (
-        (args.resize_up and args.resize_down)
-        or (args.resize_up and args.resize_first)
-        or (args.resize_first and args.resize_down)
-    ):
-        raise EnvironmentError(
-            "Choose one of --resize_up, --resize_down, --resize_first."
-        )
-    if args.resize_in is not None and args.resize_out is not None:
-        raise EnvironmentError("Choose one of --resize_in or --resize_out.")
-    if (args.to_vid and args.to_img) or (args.to_img and args.to_imgs):
-        raise EnvironmentError(
-            "--to_img is not compatible with either --to_vid or --to_imgs."
-        )
