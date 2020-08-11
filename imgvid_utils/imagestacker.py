@@ -134,7 +134,7 @@ class ImageGenerator:
 
 class ImageGeneratorMatchToName:
     # TODO: allow multiple file extension inputs.
-    def __init__(self, directories):
+    def __init__(self, directories, max_imgs=None):
         """
 
         :param directories: Directories from which to draw images.
@@ -147,6 +147,7 @@ class ImageGeneratorMatchToName:
         # Checks that all directories are valid.
         if fo.check_dirs_exist(self.directories):
             self.load_dirs()
+            self.min_files = max_imgs
         else:
             raise ValueError("One or more directories do not exist.")
 
@@ -159,7 +160,7 @@ class ImageGeneratorMatchToName:
         if min_files is not None:
             if min_files < 0:
                 self.num_imgs = 0
-            elif min_files <= self.num_imgs:
+            elif min_files < self.num_imgs:
                 self.num_imgs = min_files
 
     def load_dirs(self):
@@ -295,8 +296,8 @@ def make_images_from_folders_match(
     height=None,
     mode="rd",
 ):
-    image_iter = ImageGeneratorMatchToName(dirs_in)
-    counter: int = 0
+    os.makedirs(dir_out, exist_ok=True)
+    image_iter = ImageGeneratorMatchToName(dirs_in, max_imgs)
 
     if resize_opt == Resize.RESIZE_UP:
         fn = return_max
@@ -305,34 +306,22 @@ def make_images_from_folders_match(
     else:
         fn = return_first
 
-    image_iter.min_files = max_imgs
-    os.makedirs(dir_out, exist_ok=True)
-    for image_data in image_iter:
-        if max_imgs is None or counter < max_imgs:
-            images = image_data.images
-            file_name = fo.form_file_name(dir_out, image_data.file_name, image_data.ext)
-            if width is None or height is None:
-                dimensions = [(image.shape[1], image.shape[0]) for image in images]
-                temp_width, temp_height = fn(dimensions)
-                cv2.imwrite(
-                    file_name,
-                    stack_images(
-                        resize_images(images, (temp_width, temp_height)),
-                        (cols, rows),
-                        mode=mode,
-                    ),
-                )
-            else:
-                cv2.imwrite(
-                    file_name,
-                    stack_images(
-                        resize_images(images, (width, height)), (cols, rows), mode=mode
-                    ),
-                )
-            counter += 1
-        else:
-            break
+    if width is None or height is None:
+        def dims(images):
+            return fn([(image.shape[1], image.shape[0]) for image in images])
+    else:
+        def dims(images):
+            return width, height
 
+    for image_data in image_iter:
+        images = image_data.images
+        file_name = fo.form_file_name(dir_out, image_data.file_name, image_data.ext)
+        cv2.imwrite(
+            file_name,
+            stack_images(
+                resize_images(images, dims(images)), (cols, rows), mode=mode
+            ),
+        )
 
 #
 #
