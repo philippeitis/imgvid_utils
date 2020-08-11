@@ -83,7 +83,7 @@ class TestFileOps(unittest.TestCase):
     def test_clear_files(self):
         self.assertTrue(len(fo.get_files("./test_suite/images/", "mp4")) > 0)
         fo.clear_files("./test_suite/images", "mp4")
-        self.assertTrue(len(fo.get_files("./test_suite/images/", "mp4")) == 0)
+        self.assertEqual(0, len(fo.get_files("./test_suite/images/", "mp4")))
 
     def test_form_file_name(self):
         self.assertFilePathEqual("./hello/world.mp4", fo.form_file_name("./hello", "world.mp4", "mp4"))
