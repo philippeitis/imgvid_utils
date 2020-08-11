@@ -42,18 +42,18 @@ class TestFileOps(unittest.TestCase):
             self.files_to_delete.append(file_name)
 
     def test_check_files(self):
-        self.assertTrue(fo.check_files("./test_suite/test.mp4"))
-        self.assertTrue(fo.check_files(["./test_suite/test.mp4", "./test_suite/test1.mp4"]))
-        self.assertFalse(fo.check_files(["./test_suite/"]))
-        self.assertFalse(fo.check_files(["./test_suite/test.mp4", "./test_suite/test3.mp4"]))
-        self.assertEqual(fo.check_files(["./test_suite/test.mp4", "./test_suite/test3.mp4"], return_missing=True),
+        self.assertTrue(fo.check_files_exist("./test_suite/test.mp4"))
+        self.assertTrue(fo.check_files_exist(["./test_suite/test.mp4", "./test_suite/test1.mp4"]))
+        self.assertFalse(fo.check_files_exist(["./test_suite/"]))
+        self.assertFalse(fo.check_files_exist(["./test_suite/test.mp4", "./test_suite/test3.mp4"]))
+        self.assertEqual(fo.get_missing_files(["./test_suite/test.mp4", "./test_suite/test3.mp4"]),
                          ["./test_suite/test3.mp4"])
 
     def test_check_dirs(self):
-        self.assertTrue(fo.check_dirs("./test_suite/"))
-        self.assertTrue(fo.check_dirs(["./test_suite/"]))
-        self.assertFalse(fo.check_dirs(["./test_suite/does_not_exist"]))
-        self.assertEqual(fo.check_dirs(["./test_suite/", "./test_suite/does_not_exist"], return_missing=True),
+        self.assertTrue(fo.check_dirs_exist("./test_suite/"))
+        self.assertTrue(fo.check_dirs_exist(["./test_suite/"]))
+        self.assertFalse(fo.check_dirs_exist(["./test_suite/does_not_exist"]))
+        self.assertEqual(fo.get_missing_dirs(["./test_suite/", "./test_suite/does_not_exist"]),
                          ["./test_suite/does_not_exist"])
 
     def test_get_files(self):

@@ -1,10 +1,14 @@
-from typing import Union, List
+from typing import Union, List, Tuple
 
 import cv2
 import os
 
 from . import file_ops as fo
 from . import imagestacker as ims
+
+
+def get_video_dims(video) -> Tuple[int, int]:
+    return int(video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 
 class VideoIterator:
@@ -14,7 +18,7 @@ class VideoIterator:
         :param paths_to_videos:
         :param num:
         """
-        if not fo.check_files(paths_to_videos):
+        if not fo.check_files_exist(paths_to_videos):
             raise ValueError("One or more videos not found.")
 
         self.num = num
@@ -34,15 +38,7 @@ class VideoIterator:
         Will find the smallest video dimensions. Assumes that all videos have been initialized.
         """
         if self.height is None or self.width is None:
-            dims = []
-            for video in self.videos.values():
-                dims.append(
-                    (
-                        int(video.get(cv2.CAP_PROP_FRAME_WIDTH)),
-                        int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)),
-                    )
-                )
-            self.width, self.height = ims.return_min(dims)
+            self.width, self.height = ims.return_min([get_video_dims(video) for video in self.videos.values()])
 
     def load_videos(self):
         """

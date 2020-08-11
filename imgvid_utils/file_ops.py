@@ -4,64 +4,64 @@ import glob
 from typing import Union, List
 
 
-def check_files(
-    files: Union[str, List[str]], return_missing: bool = False
-) -> Union[List[str], bool]:
+def is_file(file: str) -> bool:
+    return os.path.exists(file) and os.path.isfile(file)
+
+
+def get_missing_files(files: Union[str, List[str]]) -> List[str]:
     """
-    If return_missing is true, returns an array of any missing files, otherwise, returns a boolean indicating
-    that all of the files exist.
+    Returns all missing files.
 
     :param files: one or more files to check.
-    :param return_missing: return the missing files (default False).
     :return:
     """
-
-    missing = []
     if isinstance(files, str):
-        if os.path.exists(files) and os.path.isfile(files):
-            return [] if return_missing else True
-        return [files] if return_missing else False
-    else:
-        for file in files:
-            if not os.path.exists(file) or not os.path.isfile(file):
-                if not return_missing:
-                    return False
-                else:
-                    missing.append(file)
-        if not return_missing:
-            return True
-        else:
-            return missing
+        return [] if is_file(files) else [files]
+
+    return [file for file in files if not is_file(file)]
 
 
-def check_dirs(
-    directories: Union[str, List[str]], return_missing: bool = False
-) -> Union[List[str], bool]:
+def check_files_exist(files: Union[str, List[str]]) -> bool:
     """
-    If return_missing is true, returns an array of any missing directories, otherwise, returns a boolean indicating
-    that all of the directories exist.
+    Returns true if all files exist, otherwise false.
+
+    :param files: one or more files to check.
+    :return:
+    """
+    if isinstance(files, str):
+        return is_file(files)
+
+    return all((is_file(file) for file in files))
+
+
+def is_dir(directory: str) -> bool:
+    return os.path.exists(directory) and os.path.isdir(directory)
+
+
+def get_missing_dirs(directories: Union[str, List[str]]) -> List[str]:
+    """
+    Returns all directories from directories which don't exist.
 
     :param directories: one or more directories to check.
-    :param return_missing: return the missing directories (default False).
     :return:
     """
-
-    missing = []
     if isinstance(directories, str):
-        if os.path.exists(directories) and os.path.isdir(directories):
-            return [] if return_missing else True
-        return [directories] if return_missing else False
-    else:
-        for directory in directories:
-            if not os.path.exists(directory) or not os.path.isdir(directory):
-                if not return_missing:
-                    return False
-                else:
-                    missing.append(directory)
-        if not return_missing:
-            return True
-        else:
-            return missing
+        return [] if is_dir(directories) else [directories]
+
+    return [directory for directory in directories if not is_dir(directory)]
+
+
+def check_dirs_exist(directories: Union[str, List[str]]) -> bool:
+    """
+    Returns true if all directories exist, otherwise false.
+
+    :param directories: one or more directories to check.
+    :return:
+    """
+    if isinstance(directories, str):
+        return is_dir(directories)
+
+    return all((is_dir(directory) for directory in directories))
 
 
 def match_all_cases(strx: str):
@@ -150,7 +150,7 @@ def get_first_n_files(
 
 
 def append_forward_slash_path(
-    paths: Union[List[str], str]
+paths: Union[List[str], str]
 ) -> Union[List[str], str, None]:
     """
     Returns the input string(s), in the same format as they were passed in, with a minimum of one forward slash
@@ -192,7 +192,6 @@ def form_file_name(dir_out: str, file_name: str, ext: str) -> str:
     :param ext: the extension the file name should end in.
     :return:
     """
-
     # Needs to check that file_name doesn't contain an extension.
     split_name = os.path.splitext(file_name)
     ext = ("." if ext[0] != "." else "") + ext

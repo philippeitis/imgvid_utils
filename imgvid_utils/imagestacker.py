@@ -51,7 +51,7 @@ class ImageGenerator:
         self.active_dir = 0
         self.index = {}
         # Checks that all directories are valid.
-        if not fo.check_dirs(self.directories):
+        if not fo.check_dirs_exist(self.directories):
             raise ValueError("One or more directories do not exist.")
 
         self.load_dirs()
@@ -145,7 +145,7 @@ class ImageGeneratorMatchToName:
         self.curr_index = 0
         self.possible_file_names_arr = []
         # Checks that all directories are valid.
-        if fo.check_dirs(self.directories):
+        if fo.check_dirs_exist(self.directories):
             self.load_dirs()
         else:
             raise ValueError("One or more directories do not exist.")
