@@ -11,9 +11,7 @@ def get_correct_dimensions(args):
             raise EnvironmentError(
                 "Output height must be a multiple of image stacking number."
             )
-        image_width //= args.cols
-        image_height //= args.rows
-        return image_width, image_height
+        return image_width // args.cols, image_height // args.rows
 
     if args.dirs_in:
         return ims.get_dimensions_dirs(
