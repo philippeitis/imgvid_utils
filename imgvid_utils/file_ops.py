@@ -150,7 +150,7 @@ def get_first_n_files(
 
 
 def append_forward_slash_path(
-paths: Union[List[str], str]
+    paths: Union[List[str], str]
 ) -> Union[List[str], str, None]:
     """
     Returns the input string(s), in the same format as they were passed in, with a minimum of one forward slash
