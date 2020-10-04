@@ -11,7 +11,9 @@ def get_correct_dimensions_vstack(args):
             raise EnvironmentError(
                 "Output width must be a multiple of image stacking number."
             )
-        return image_width // args.cols, image_height // args.rows
+        cols = len(args.hstack) if args.hstack else 1
+        rows = len(args.vstack) if args.vstack else 1
+        return image_width // cols, image_height // rows
 
     return ims.get_dimensions_files(
         args.vstack or args.hstack, args.ext_in, ap.get_resize_enum(args)
