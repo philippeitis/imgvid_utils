@@ -101,11 +101,11 @@ def get_files(directory: str, ext: Union[List[str], str]) -> List[str]:
 
     extensions = [("." if extx[0] != "." else "") + extx for extx in extensions]
     directory = append_forward_slash_path(directory)
-    frames = [
+    frames = {
         frame for ext1 in extensions for frame in glob.glob(f"{directory}*{match_all_cases(ext1)}")
-    ]
+    }
 
-    return sorted(list(set(frames)))
+    return sorted(list(frames))
 
 
 def get_first_n_files(
