@@ -198,16 +198,8 @@ def parse_arguments():
     return validate_arguments(parser_x)
 
 
-def has_video_exts(exts):
-    return bool(set(exts).intersection({"mp4"}))
-
-
-def has_image_exts(exts):
-    return bool(set(exts).intersection({"png", "jpg"}))
-
-
 def mixed_ext(exts):
-    return has_image_exts(exts) and has_video_exts(exts)
+    return fo.has_image_exts(exts) and fo.has_video_exts(exts)
 
 
 # Checks if the extensions are equivalent.

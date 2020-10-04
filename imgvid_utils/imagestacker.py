@@ -518,7 +518,7 @@ def get_first_dimensions_files(
     if len(files_in) == 0:
         raise ValueError("get_first_dimensions_files requires at least one file.")
 
-    if "mp4" not in ext_in:
+    if not fo.has_video_exts(ext_in):
         return return_first(get_img_dimensions(files_in))
     else:
         return return_first(get_video_dimensions(files_in))
@@ -539,7 +539,7 @@ def get_min_dimensions_files(
     if len(files_in) == 0:
         raise ValueError("get_min_dimensions_files requires at least one file.")
 
-    if "mp4" not in ext_in:
+    if not fo.has_video_exts(ext_in):
         return return_min(get_img_dimensions(files_in))
     else:
         return return_min(get_video_dimensions(files_in))
@@ -560,7 +560,7 @@ def get_max_dimensions_files(
     if len(files_in) == 0:
         raise ValueError("get_max_dimensions_files requires at least one file.")
 
-    if "mp4" not in ext_in:
+    if not fo.has_video_exts(ext_in):
         return return_max(get_img_dimensions(files_in))
     else:
         return return_max(get_video_dimensions(files_in))

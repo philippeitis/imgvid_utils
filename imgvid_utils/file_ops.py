@@ -203,3 +203,17 @@ def form_file_name(dir_out: str, file_name: str, ext: str) -> str:
 def get_ext(file):
     ext_in = os.path.splitext(file)[1]
     return ext_in[1:]
+
+
+def has_video_exts(exts):
+    video_exts = {"mp4"}
+    if isinstance(exts, str):
+        return exts in video_exts
+    return bool(set(exts).intersection(video_exts))
+
+
+def has_image_exts(exts):
+    image_exts = {"png", "jpg"}
+    if isinstance(exts, str):
+        return exts in image_exts
+    return bool(set(exts).intersection(image_exts))
