@@ -12,6 +12,7 @@ def parse_arguments():
     parser_y = parser_x.add_mutually_exclusive_group()
     lazy_parser = parser_y.add_argument_group()
     lazy_choices = lazy_parser.add_mutually_exclusive_group()
+
     lazy_choices.add_argument(
         "--vstack",
         nargs="+",
@@ -224,7 +225,13 @@ def check_ext(ext1: str, ext2: str):
 
 
 # Assumes args has resize_up, resize_down, and resize_first
-def get_resize_enum(args):
+def get_resize_enum(args) -> ims.Resize:
+    """
+    Identifies which option has been selected.
+
+    :param args:
+    :return:
+    """
     if args.resize_up:
         return ims.Resize.RESIZE_UP
     elif args.resize_down:
@@ -238,9 +245,9 @@ def get_resize_enum(args):
 class IsPlural:
     def __init__(self, pl):
         if hasattr(pl, "__len__") and (not isinstance(pl, str)):
-            self.is_plural = len(pl) > 1
+            self.is_plural = len(pl) != 1
         elif isinstance(pl, numbers.Number):
-            self.is_plural = abs(pl) > 1
+            self.is_plural = abs(pl) != 1
         else:
             self.is_plural = False
 
@@ -261,18 +268,14 @@ class PluralizableString:
         return self.text
 
 
-def validate_arguments(parser):
+def validate_lazy_arguments(parser, args) -> bool:
     """
-    Checks that all file paths are correct and that no conflicting variables exist.
+    Checks that the arguments for lazy image manipulation are correct.
 
-    :param parser:  An argparse.ArgumentParser object.
-    :return:        A set of parsed and valid arguments.
+    :param parser:
+    :param args:
+    :return:        A boolean indicating whether lazy arguments exist.
     """
-
-    args = parser.parse_args()
-    args.dir_out = fo.append_forward_slash_path(args.dir_out)
-    args.dirs_in = fo.append_forward_slash_path(args.dirs_in)
-
     if args.vstack or args.hstack:
         missing_files = fo.get_missing_files(args.vstack or args.hstack)
         if len(missing_files) != 0:
@@ -285,6 +288,11 @@ def validate_arguments(parser):
             )
         if not args.dest:
             parser.error("Must specify a destination file with --vstack or --hstack.")
+        return True
+    return False
+
+
+def validate_dirs(parser, args) -> bool:
     if args.dirs_in:
         if args.to_imgs and not args.ext_in:
             parser.error("No extension specified for images.")
@@ -297,7 +305,11 @@ def validate_arguments(parser):
                 "The %s specified at %s %s not exist."
                 % (dir_str, ", ".join(missing_dirs), do_str)
             )
+        return True
+    return False
 
+
+def validate_files(parser, args) -> bool:
     if args.files_in:
         if len(args.files_in) < args.cols * args.rows:
             parser.error(
@@ -320,7 +332,18 @@ def validate_arguments(parser):
                 "The %s specified at %s does not exist."
                 % (file_str, ", ".join(missing_files))
             )
+        return True
+    return False
 
+
+def validate_extensions(parser, args):
+    """
+    Validate that the extensions provided are correct.
+
+    :param parser:
+    :param args:
+    :return:
+    """
     if mixed_ext(args.ext_in):
         parser.error("Must have exclusively image or video extensions.")
 
@@ -333,6 +356,27 @@ def validate_arguments(parser):
         if args.ext_out not in ["mp4"]:
             args.ext_out = "mp4"
             print("Output extension automatically set to %s." % args.ext_in)
+
+
+def validate_arguments(parser):
+    """
+    Checks that all file paths are correct and that no conflicting variables exist.
+
+    :param parser:  An argparse.ArgumentParser object.
+    :return:        A set of parsed and valid arguments.
+    """
+
+    args = parser.parse_args()
+    args.dir_out = fo.append_forward_slash_path(args.dir_out)
+    args.dirs_in = fo.append_forward_slash_path(args.dirs_in)
+
+    if validate_lazy_arguments(parser, args):
+        return args
+
+    if not validate_dirs(parser, args):
+        validate_files(parser, args)
+
+    validate_extensions(parser, args)
 
     if args.read_matching_file_names:
         if not args.dirs_in:

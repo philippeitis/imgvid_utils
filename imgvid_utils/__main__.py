@@ -53,26 +53,6 @@ if __name__ == "__main__":
 
     args = ap.parse_arguments()
 
-    os.makedirs(os.path.dirname(args.dir_out), exist_ok=True)
-
-    if args.read_matching_file_names:
-        image_width, image_height = None, None
-        if args.resize_in:
-            image_width, image_height = args.resize_in
-        elif args.resize_out:
-            image_width, image_height = args.resize_out
-        ims.make_images_from_folders_match(
-            args.dirs_in,
-            args.dir_out,
-            args.max_imgs,
-            args.cols,
-            args.rows,
-            ap.get_resize_enum(args),
-            image_width,
-            image_height,
-        )
-        exit()
-
     if args.vstack or args.hstack:
         files = args.vstack or args.hstack
         if args.vstack:
@@ -92,6 +72,26 @@ if __name__ == "__main__":
             rows=rows,
             width=image_width,
             height=image_height,
+        )
+        exit()
+
+    os.makedirs(os.path.dirname(args.dir_out), exist_ok=True)
+
+    if args.read_matching_file_names:
+        image_width, image_height = None, None
+        if args.resize_in:
+            image_width, image_height = args.resize_in
+        elif args.resize_out:
+            image_width, image_height = args.resize_out
+        ims.make_images_from_folders_match(
+            args.dirs_in,
+            args.dir_out,
+            args.max_imgs,
+            args.cols,
+            args.rows,
+            ap.get_resize_enum(args),
+            image_width,
+            image_height,
         )
         exit()
 
