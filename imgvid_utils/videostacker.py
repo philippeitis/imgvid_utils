@@ -13,7 +13,8 @@ def get_video_dims(video) -> Tuple[int, int]:
 
 class VideoIterator:
     def __init__(self, paths_to_videos, num=1):
-        """ Initializes a video iterator that will return num frames per iteration from each video in paths_to_videos.
+        """
+        Initializes a video iterator that will return num frames per iteration from each video in paths_to_videos.
 
         :param paths_to_videos:
         :param num:
@@ -111,7 +112,8 @@ def make_video_from_images(
     width=None,
     height=None,
 ):
-    """Creates, and saves a video with the file_name, encoded using video_format containing each video in files_in,
+    """
+    Creates, and saves a video with the file_name, encoded using video_format containing each video in files_in,
     containing each image in dirs_in with the appropriate extension, in order of appearance, with each individual image
     resized to width, height, stacked col x row.
 
@@ -169,7 +171,8 @@ def make_video_from_array(
     width=None,
     height=None,
 ):
-    """ Creates, and saves a video with the file_name, encoded using video_format containing each video in files_in,
+    """
+    Creates, and saves a video with the file_name, encoded using video_format containing each video in files_in,
     containing each image in files_in in order of appearance, with each individual image resized to width, height.
 
     :param files_in:        List of files to read and place into the video.
@@ -223,7 +226,8 @@ def make_video_from_videos(
     width: int = None,
     height: int = None,
 ) -> None:
-    """ Creates, and saves a video with the file_name, encoded using video_format containing each video in files_in,
+    """
+    Creates, and saves a video with the file_name, encoded using video_format containing each video in files_in,
     stacked col x row, in order of appearance, with each individual video frame resized to width, height.
 
     :param files_in:        List of files to read and place into the video.
@@ -275,7 +279,8 @@ def split_video(
     start_frame: int = 0,
     end_frame: int = -1,
 ):
-    """ Takes each individual frame from the video file_in, and outputs it as an image with the file_name followed by a
+    """
+    Takes each individual frame from the video file_in, and outputs it as an image with the file_name followed by a
     padded counter corresponding to that image's position in the video (eg. 0001) to dir_out. ext_out,
     starting at start_frame and going to end_frame. Outputs frame_count stills if end_frame is not specified.
 
