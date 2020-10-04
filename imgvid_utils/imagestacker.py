@@ -37,86 +37,84 @@ class ImageGenerator:
         """
         Pass in paths to directories containing images, and extension
         of desired image inputs. Will return num images each iteration.
+        May sample unevenly.
 
         :param directories: Input directories.
         :param ext:         Extension of file to return
         :param num:         Number of images to return each iteration.
         """
-        self.directories = directories
+        if isinstance(directories, str):
+            self.directories = [directories]
+        else:
+            if len(directories) == 0:
+                raise ValueError("No directories provided.")
+            self.directories = directories
+
+        if len(directories) % num != 0:
+            raise ValueError("Directories will not be sampled evenly.")
+
         self.ext = ext
         self.num = num
         self.files = {}
-        self._min_files = 0
+        self._max_iters = 0
+        self._max_index = 0
         self.curr_index = 0
         self.active_dir = 0
-        self.index = {}
-        # Checks that all directories are valid.
+
+        self.index = [0] * len(self.directories)
+
         if not fo.check_dirs_exist(self.directories):
             raise ValueError("One or more directories do not exist.")
 
-        self.load_dirs()
+        self._load_dirs()
 
     @property
-    def min_files(self):
-        return self._min_files
+    def max_iters(self):
+        return self._max_iters
 
-    @min_files.setter
-    def min_files(self, min_files: Union[None, int]):
+    @max_iters.setter
+    def max_iters(self, max_iters: Union[None, int]):
         """
         Sets the number of files that this iterator will output:
-        If min_files <= 0, nothing will be returned. If min_files >= self.min_files, self.min_files remains unchanged.
-        Otherwise, self.min_files = min_files
+        If max_iters <= 0, nothing will be returned. If max_iters >= self.max_iters, self.max_iters remains unchanged.
+        Otherwise, self.max_iters = max_iters
 
-        :param min_files:
+        :param max_iters:
         :return:
         """
-        if min_files is not None:
-            if min_files < 0:
-                self._min_files = 0
-            elif min_files <= self._min_files:
-                self._min_files = min_files
+        if max_iters is not None:
+            if max_iters < 0:
+                self._max_iters = 0
+            elif max_iters <= self._max_iters:
+                self._max_iters = max_iters
 
-    # Loads all image paths into memory.
-    def load_dirs(self):
-        if isinstance(self.directories, str):
-            self.files[0] = fo.get_files(self.directories, self.ext)
-            self.index[0] = 0
-            self._min_files = len(self.files[0]) - len(self.files[0]) % self.num
-            if self._min_files == 0:
+    def _load_dir(self, counter):
+        files = fo.get_files(self.directories[counter], self.ext)
+        self.files[counter] = files
+        self.index[counter] = 0
+        len_files = len(files)
+        candidate_iters = len_files - len_files % self.num
+        if self._max_iters == 0:
+            self._max_iters = candidate_iters
+        elif self._max_iters > candidate_iters:
+            self._max_iters = candidate_iters
+
+    def _load_dirs(self):
+        for counter in range(len(self.directories)):
+            self._load_dir(counter)
+            if self._max_iters == 0:
                 raise ValueError(
-                    "No images matching %s found in directories %s."
-                    % (", ".join(self.ext), ", ".join(self.directories))
+                    "Insufficiently many images found matching ext %s in directories %s."
+                    % (", ".join(self.ext), ", ".join(self.directories[counter]))
                 )
-
-        else:
-            counter = 0
-            for directory in self.directories:
-                files = fo.get_files(self.directories[counter], self.ext)
-                if self._min_files == 0:
-                    self._min_files = len(files)
-                elif self._min_files > len(files):
-                    self._min_files = len(files)
-                if self._min_files == 0:
-                    print("No files found in " + directory)
-                else:
-                    self.files[counter] = files
-                    self.index[counter] = 0
-                    counter += 1
-
-            if self._min_files == 0:
-                raise ValueError(
-                    "No images matching %s found in directories %s."
-                    % (", ".join(self.ext), ", ".join(self.directories))
-                )
-            self._min_files = len(self.files[0]) - len(self.files[0]) % self.num
+        self._max_index = self._max_iters * len(self.files)
 
     def __iter__(self):
         return self
 
-    # Returns num images in array.
     def __next__(self):
         """ Returns num images in an array. """
-        if self.curr_index < self._min_files * len(self.files.keys()):
+        if self.curr_index < self._max_index:
             output = []
             for i in range(self.num):
                 output.append(
@@ -125,7 +123,7 @@ class ImageGenerator:
                 self.index[self.active_dir] += 1
                 self.curr_index += 1
                 self.active_dir += 1
-                self.active_dir %= len(self.files.keys())
+                self.active_dir %= len(self.files)
 
             return ImageDataStore(output, None, None)
         else:
@@ -134,80 +132,86 @@ class ImageGenerator:
 
 class ImageGeneratorMatchToName:
     # TODO: allow multiple file extension inputs.
-    def __init__(self, directories, max_imgs=None):
+    def __init__(self, directories, max_iters=None, exts=None):
         """
 
         :param directories: Directories from which to draw images.
         """
-        self.directories = directories
-        self.files = {}
-        self.num_imgs = 0
+
+        if isinstance(directories, str):
+            self.directories = [directories]
+        else:
+            if len(directories) == 0:
+                raise ValueError("No directories provided.")
+            self.directories = directories
+
+        self.file_location_in_dir = {}
+
         self.curr_index = 0
-        self.possible_file_names_arr = []
-        # Checks that all directories are valid.
+        self.candidates = []
+        self._max_iters = 0
+
+        self.exts = exts or ["jpg", "png"]
+
         if fo.check_dirs_exist(self.directories):
-            self.load_dirs()
-            self.min_files = max_imgs
+            self._load_dirs()
+            self.max_iters = max_iters
         else:
             raise ValueError("One or more directories do not exist.")
 
     @property
-    def min_files(self):
-        return self.num_imgs
+    def max_iters(self):
+        return self._max_iters
 
-    @min_files.setter
-    def min_files(self, min_files: Union[None, int]):
-        if min_files is not None:
-            if min_files < 0:
-                self.num_imgs = 0
-            elif min_files < self.num_imgs:
-                self.num_imgs = min_files
+    @max_iters.setter
+    def max_iters(self, max_iters: Union[None, int]):
+        if max_iters is not None:
+            if max_iters < 0:
+                self._max_iters = 0
+            elif max_iters < self._max_iters:
+                self._max_iters = max_iters
 
-    def load_dirs(self):
+    def _load_dir(self, counter):
+        dir = self.directories[counter]
+        files = fo.get_files(dir, self.exts)
+        if not files:
+            raise ValueError(f"No files found in {dir}")
+
+        self.file_location_in_dir[counter] = {
+            os.path.basename(f_name): f_name for f_name in files
+        }
+
+        return self.file_location_in_dir[counter].keys()
+
+    def _load_dirs(self):
         """ Finds and stores all file names which exist across all directories. """
         possible_file_names = set()
-        if isinstance(self.directories, str):
-            self.files[0] = {
-                os.path.basename(f_name): f_name
-                for f_name in fo.get_files(self.directories, ["jpg", "png"])
-            }
-            possible_file_names = set(self.files[0].keys())
-        else:
-            for counter, directory in enumerate(self.directories):
-                files = fo.get_files(self.directories[counter], ["jpg", "png"])
-                if not files:
-                    raise ValueError(f"No files found in {directory}")
+        for counter in range(len(self.directories)):
+            if counter == 0:
+                possible_file_names = set(self._load_dir(counter))
+            else:
+                possible_file_names &= set(self._load_dir(counter))
 
-                self.files[counter] = {
-                    os.path.basename(f_name): f_name for f_name in files
-                }
-                if counter == 0:
-                    possible_file_names = set(self.files[counter].keys())
-                else:
-                    possible_file_names &= set(self.files[counter].keys())
-
-        self.possible_file_names_arr = sorted(list(possible_file_names))
-        self.num_imgs = len(self.possible_file_names_arr)
-
-        if self.num_imgs == 0:
+        if not possible_file_names:
             raise ValueError("No file names in common.")
+
+        self.candidates = sorted(list(possible_file_names))
+        self._max_iters = len(self.candidates)
 
     def __iter__(self):
         """ Returns all instances of images with matching file names, in alphabetical order. """
         return self
 
     def __next__(self):
-        if self.curr_index < self.num_imgs:
+        if self.curr_index < self._max_iters:
             output = []
-            file_name = self.possible_file_names_arr[self.curr_index]
-
-            for file_dict in self.files.values():
+            file_name = self.candidates[self.curr_index]
+            for file_dict in self.file_location_in_dir.values():
+                # TODO: Handle special file name errors
                 output.append(cv2.imread(file_dict[file_name]))
             self.curr_index += 1
-
-            return ImageDataStore(
-                output, os.path.splitext(file_name)[0], os.path.splitext(file_name)[-1]
-            )
+            base, *_, ext = os.path.splitext(file_name)
+            return ImageDataStore(output, base, ext)
         else:
             raise StopIteration()
 
@@ -229,6 +233,7 @@ def stack_images(images, dimensions, mode="rd"):
     images_stacked = [None] * y
     for i in range(y):
         images_stacked[i] = [None] * x
+    # TODO: Excessive quantities of magic occuring here
     if mode[0] in ("l", "r"):
         for i in range(x * y):
             images_stacked[i // x if mode[1] == "d" else y - i // x - 1][
@@ -310,7 +315,7 @@ def make_images_from_folders_match(
         def dims(images):
             return fn([(image.shape[1], image.shape[0]) for image in images])
     else:
-        def dims(images):
+        def dims(_):
             return width, height
 
     for image_data in image_iter:
@@ -323,8 +328,7 @@ def make_images_from_folders_match(
             ),
         )
 
-#
-#
+
 def make_images_from_folders(
     dirs_in: Union[List[str], str],
     ext_in: Union[List[str], str] = "jpg",
@@ -357,12 +361,14 @@ def make_images_from_folders(
     image_iter = ImageGenerator(dirs_in, ext=ext_in, num=cols * rows)
     os.makedirs(dir_out, exist_ok=True)
 
-    image_iter._min_files = max_imgs
-    num_zeros = len(str(image_iter._min_files // image_iter.num - 1))
+    image_iter.max_iters = max_imgs
+    num_zeros = len(str(image_iter.max_iters // image_iter.num - 1))
+
     for counter, image_data in enumerate(image_iter):
         temp_file_name = fo.form_file_name(
             dir_out, file_name + str(counter).zfill(num_zeros), ext_out
         )
+
         cv2.imwrite(
             temp_file_name,
             stack_images(
@@ -403,7 +409,7 @@ def get_dimensions_files(files_in: Union[List[str], str], ext: str, resize: Resi
 
 
 def get_first_dimensions_dirs(
-    dirs_in: Union[List[str], str], ext_in: Union[List[str], str]
+        dirs_in: Union[List[str], str], ext_in: Union[List[str], str]
 ):
     """
     Returns the dimensions of the first valid file found with any extension in ext_in. Order
@@ -432,7 +438,7 @@ def get_first_dimensions_dirs(
 
 
 def get_min_dimensions_dirs(
-    dirs_in: Union[List[str], str], ext_in: Union[List[str], str]
+        dirs_in: Union[List[str], str], ext_in: Union[List[str], str]
 ):
     """
     Returns the minimum dimensions of any file matching the specified extensions across all
@@ -465,7 +471,7 @@ def get_min_dimensions_dirs(
 
 
 def get_max_dimensions_dirs(
-    dirs_in: Union[List[str], str], ext_in: Union[List[str], str]
+        dirs_in: Union[List[str], str], ext_in: Union[List[str], str]
 ):
     """
     Returns the maximum dimensions of any file matching the specified extensions across all
@@ -503,7 +509,7 @@ def get_max_dimensions_dirs(
 
 
 def get_first_dimensions_files(
-    files_in: Union[Iterable[str], str], ext_in: Union[Collection[str], str]
+        files_in: Union[Iterable[str], str], ext_in: Union[Collection[str], str]
 ):
     """
     Will get the dimensions of the first file in files_in
@@ -525,7 +531,7 @@ def get_first_dimensions_files(
 
 
 def get_min_dimensions_files(
-    files_in: Union[List[str], str], ext_in: Union[List[str], str]
+        files_in: Union[List[str], str], ext_in: Union[List[str], str]
 ):
     """
     Gets the smallest dimensions of the input files.
@@ -546,7 +552,7 @@ def get_min_dimensions_files(
 
 
 def get_max_dimensions_files(
-    files_in: Union[List[str], str], ext_in: Union[List[str], str]
+        files_in: Union[List[str], str], ext_in: Union[List[str], str]
 ):
     """
     Gets the minimum and maximum dimensions of the files in the list with the given extension(s).
