@@ -21,63 +21,60 @@ class VideoIterator:
         """
         if not fo.check_files_exist(paths_to_videos):
             raise ValueError("One or more videos not found.")
+        if isinstance(paths_to_videos, str):
+            self.paths = [paths_to_videos]
+        else:
+            self.paths = paths_to_videos
 
         self.num = num
-        self.videos = {}
-        self.paths = paths_to_videos
-        self.videos_completed = {}
-        self.last_frame = {}
+        self.videos = [None] * len(self.paths)
+        self.videos_completed = [False] * len(self.paths)
+        self.last_frame = [None] * len(self.paths)
         self.active_vid = 0
         self.fps = 0
         self.width = None
         self.height = None
         self.num_frames = 0
-        self.load_videos()
+        self._load_videos()
 
-    def find_min_dims(self):
+    def _set_dims(self):
         """
-        Will find the smallest video dimensions. Assumes that all videos have been initialized.
+        If one or more dimensions are not already set, sets the image dimensions automatically.
+        Assumes that all videos have been initialized.
         """
         if self.height is None or self.width is None:
-            self.width, self.height = ims.return_min([get_video_dims(video) for video in self.videos.values()])
+            self.width, self.height = ims.return_min([get_video_dims(video) for video in self.videos])
 
-    def load_videos(self):
+    def _load_video(self, counter):
+        video = self.paths[counter]
+        self.last_frame[counter] = None
+        self.videos[counter] = cv2.VideoCapture(video)
+        self.videos_completed[counter] = False
+        if self.fps != 0:
+            if int(self.fps) != int(self.videos[counter].get(cv2.CAP_PROP_FPS)):
+                raise ValueError("Video FPS does not match.")
+        else:
+            self.fps = self.videos[counter].get(cv2.CAP_PROP_FPS)
+        self.num_frames = max(
+            self.num_frames, int(self.videos[0].get(cv2.CAP_PROP_FRAME_COUNT))
+        )
+
+    def _load_videos(self):
         """
         Loads the videos into memory, initializes variables.
 
         :return:
         """
-        if isinstance(self.paths, str):
-            self.last_frame[0] = None
-            self.videos[0] = cv2.VideoCapture(self.paths)
-            self.width = int(self.videos[0].get(cv2.CAP_PROP_FRAME_WIDTH))
-            self.height = int(self.videos[0].get(cv2.CAP_PROP_FRAME_HEIGHT))
-            self.fps = self.videos[0].get(cv2.CAP_PROP_FPS)
-            self.num_frames = int(self.videos[0].get(cv2.CAP_PROP_FRAME_COUNT))
-            self.videos_completed[0] = False
-        else:
-            counter = 0
-            for video in self.paths:
-                self.last_frame[counter] = None
-                self.videos[counter] = cv2.VideoCapture(video)
-                self.videos_completed[counter] = False
-                if self.fps != 0:
-                    if int(self.fps) != int(self.videos[counter].get(cv2.CAP_PROP_FPS)):
-                        raise ValueError("Video FPS does not match.")
-                else:
-                    self.fps = self.videos[counter].get(cv2.CAP_PROP_FPS)
-                self.num_frames = max(
-                    self.num_frames, int(self.videos[0].get(cv2.CAP_PROP_FRAME_COUNT))
-                )
-                counter += 1
-            self.find_min_dims()
+        for counter in range(len(self.paths)):
+            self._load_video(counter)
+        self._set_dims()
 
     def __iter__(self):
         return self
 
     # Returns num frames from all videos. If one video has reached the end, will keep last frame.
     def __next__(self):
-        if not all(self.videos_completed.values()):
+        if not all(self.videos_completed):
             output = []
             for i in range(self.num):
                 if not self.videos_completed[self.active_vid]:
@@ -87,8 +84,7 @@ class VideoIterator:
                     else:
                         self.videos_completed[self.active_vid] = True
                 output.append(self.last_frame[self.active_vid])
-                self.active_vid += 1
-                self.active_vid %= len(self.videos.keys())
+                self.active_vid = (self.active_vid + 1) % len(self.videos)
             return output
         else:
             raise StopIteration()
