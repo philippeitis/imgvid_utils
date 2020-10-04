@@ -106,7 +106,7 @@ if __name__ == "__main__":
 
     if args.to_vid:
         if args.dirs_in:
-            if ap.has_image_exts(args.ext_in):
+            if fo.has_image_exts(args.ext_in):
                 vs.make_video_from_images(
                     args.dirs_in,
                     args.ext_in,
