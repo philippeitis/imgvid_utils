@@ -55,7 +55,7 @@ def check_dirs_exist(directories: Union[str, List[str]]) -> bool:
     """
     Returns true if all directories exist, otherwise false.
 
-    :param directories: one or more directories to check.
+    :param      directories: one or more directories to check.
     :return:
     """
     if isinstance(directories, str):
@@ -198,3 +198,8 @@ def form_file_name(dir_out: str, file_name: str, ext: str) -> str:
     if len(split_name) > 1:
         file_name = ".".join(split_name[:-1])
     return os.path.join(dir_out, file_name + ext)
+
+
+def get_ext(file):
+    ext_in = os.path.splitext(file)[1]
+    return ext_in[1:]

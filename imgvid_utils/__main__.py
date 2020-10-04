@@ -1,3 +1,23 @@
+def get_correct_dimensions_vstack(args):
+    if args.resize_in:
+        return args.resize_in
+    elif args.resize_out:
+        image_width, image_height = args.resize_out
+        if args.vstack and image_height % len(args.vstack) != 0:
+            raise EnvironmentError(
+                "Output height must be a multiple of image stacking number."
+            )
+        if args.hstack and image_width % len(args.hstack) != 0:
+            raise EnvironmentError(
+                "Output width must be a multiple of image stacking number."
+            )
+        return image_width // args.cols, image_height // args.rows
+
+    return ims.get_dimensions_files(
+        args.vstack or args.hstack, args.ext_in, ap.get_resize_enum(args)
+    )
+
+
 def get_correct_dimensions(args):
     if args.resize_in:
         return args.resize_in
@@ -50,6 +70,28 @@ if __name__ == "__main__":
             ap.get_resize_enum(args),
             image_width,
             image_height,
+        )
+        exit()
+
+    if args.vstack or args.hstack:
+        files = args.vstack or args.hstack
+        if args.vstack:
+            cols = 1
+            rows = len(args.vstack)
+        else:
+            cols = len(args.hstack)
+            rows = 1
+
+        image_width, image_height = get_correct_dimensions_vstack(args)
+        ims.make_image_from_images(
+            files,
+            os.path.dirname(args.dest) or "./",
+            os.path.basename(args.dest),
+            fo.get_ext(args.dest),
+            cols=cols,
+            rows=rows,
+            width=image_width,
+            height=image_height,
         )
         exit()
 

@@ -8,10 +8,35 @@ from . import imagestacker as ims
 def parse_arguments():
     import argparse
 
-    parser = argparse.ArgumentParser()
+    parser_x = argparse.ArgumentParser()
+    parser_y = parser_x.add_mutually_exclusive_group()
+    lazy_parser = parser_y.add_argument_group()
+    lazy_choices = lazy_parser.add_mutually_exclusive_group()
+    lazy_choices.add_argument(
+        "--vstack",
+        nargs="+",
+        type=str,
+        help="List any images you want to stack vertically"
+    )
+
+    lazy_choices.add_argument(
+        "--hstack",
+        nargs="+",
+        type=str,
+        help="List any images you want to stack horizontally"
+    )
+
+    lazy_parser.add_argument(
+        "--dest",
+        type=str,
+        help="Destination image"
+    )
+
+    parser = parser_y.add_argument_group()
     # TODO: excess images in directory? Insufficient images in directory?
 
-    sources = parser.add_mutually_exclusive_group(required=True)
+    sources = parser.add_mutually_exclusive_group()
+
     sources.add_argument(
         "--dirs_in",
         dest="dirs_in",
@@ -19,6 +44,7 @@ def parse_arguments():
         type=str,
         help="List any directories you want to use.",
     )
+
     sources.add_argument(
         "--files_in",
         dest="files_in",
@@ -168,31 +194,7 @@ def parse_arguments():
              " and will resize on a per image basis unless a width and height are specified.",
     )
 
-    args = parser.parse_args()
-    args.dir_out = fo.append_forward_slash_path(args.dir_out)
-    args.dirs_in = fo.append_forward_slash_path(args.dirs_in)
-    validate_arguments(args)
-
-    if mixed_ext(args.ext_in):
-        parser.error("Must have exclusively image or video extensions.")
-
-    if has_video_exts(args.ext_in):
-        if args.to_imgs:
-            parser.error("Can not select --to_imgs and have videos in ext in")
-        args.to_vid = True
-
-    if args.to_vid:
-        if args.ext_out not in ["mp4"]:
-            args.ext_out = "mp4"
-            print("Output extension automatically set to %s." % args.ext_in)
-
-    if args.read_matching_file_names:
-        if not args.dirs_in:
-            parser.error("--read_matching_file_names requires --dirs_in to be specified.")
-        if args.cols * args.rows != len(args.dirs_in):
-            parser.error(f"Provided --dirs_in of {len(args.dirs_in)} directories and output stacking"
-                         f" of {args.cols} by {args.rows} images are not compatible.")
-    return args
+    return validate_arguments(parser_x)
 
 
 def has_video_exts(exts):
@@ -207,16 +209,18 @@ def mixed_ext(exts):
     return has_image_exts(exts) and has_video_exts(exts)
 
 
-def get_ext(args):
-    ext_in = os.path.splitext(args.files_in[0])[1]
-    return ext_in[1:]
-
-
 # Checks if the extensions are equivalent.
 def check_ext(ext1: str, ext2: str):
+    """
+    Checks if the ext1 is equivalent to ext2
+
+    :param ext1:
+    :param ext2:
+    :return:
+    """
     ext1 = ext1.lower().strip(".")
     ext2 = ext2.lower().strip(".")
-    return mixed_ext([ext1, ext2])
+    return not mixed_ext([ext1, ext2])
 
 
 # Assumes args has resize_up, resize_down, and resize_first
@@ -257,24 +261,46 @@ class PluralizableString:
         return self.text
 
 
-# Checks that all file paths are correct and that no conflicting variables exist.
-def validate_arguments(args):
+def validate_arguments(parser):
+    """
+    Checks that all file paths are correct and that no conflicting variables exist.
+
+    :param parser:  An argparse.ArgumentParser object.
+    :return:        A set of parsed and valid arguments.
+    """
+
+    args = parser.parse_args()
+    args.dir_out = fo.append_forward_slash_path(args.dir_out)
+    args.dirs_in = fo.append_forward_slash_path(args.dirs_in)
+
+    if args.vstack or args.hstack:
+        missing_files = fo.get_missing_files(args.vstack or args.hstack)
+        if len(missing_files) != 0:
+            pl = IsPlural(missing_files)
+            dir_str = PluralizableString("file", "", "s", pl)
+            do_str = PluralizableString("do", "es", "", pl)
+            parser.error(
+                "The %s specified at %s %s not exist."
+                % (dir_str, ", ".join(missing_files), do_str)
+            )
+        if not args.dest:
+            parser.error("Must specify a destination file with --vstack or --hstack.")
     if args.dirs_in:
         if args.to_imgs and not args.ext_in:
-            raise EnvironmentError("No extension specified for images.")
+            parser.error("No extension specified for images.")
         missing_dirs = fo.get_missing_dirs(args.dirs_in)
         if len(missing_dirs) != 0:
             pl = IsPlural(missing_dirs)
             dir_str = PluralizableString("director", "y", "ies", pl)
             do_str = PluralizableString("do", "es", "", pl)
-            raise EnvironmentError(
+            parser.error(
                 "The %s specified at %s %s not exist."
                 % (dir_str, ", ".join(missing_dirs), do_str)
             )
 
     if args.files_in:
         if len(args.files_in) < args.cols * args.rows:
-            raise EnvironmentError(
+            parser.error(
                 "Not enough photos given to generate an image or video of dimensions %d by %d (requires %d images or "
                 "videos, %d given)"
                 % (args.cols, args.rows, args.cols * args.rows, len(args.files_in))
@@ -283,14 +309,36 @@ def validate_arguments(args):
         first_ext = os.path.splitext(args.files_in[0])
         for path in args.files_in:
             if not os.path.exists(path):
-                raise EnvironmentError("File %s not found." % path)
+                parser.error("File %s not found." % path)
             if not check_ext(first_ext[1], os.path.splitext(path)[1]):
-                raise EnvironmentError("Video and image files can not be included.")
+                parser.error("Video and image files can not be included.")
 
         missing_files = fo.get_missing_files(args.files_in)
         if len(missing_files) != 0:
             file_str = PluralizableString("file", "", "s", IsPlural(missing_files))
-            raise EnvironmentError(
+            parser.error(
                 "The %s specified at %s does not exist."
                 % (file_str, ", ".join(missing_files))
             )
+
+    if mixed_ext(args.ext_in):
+        parser.error("Must have exclusively image or video extensions.")
+
+    if has_video_exts(args.ext_in):
+        if args.to_imgs:
+            parser.error("Can not select --to_imgs and have videos in ext in")
+        args.to_vid = True
+
+    if args.to_vid:
+        if args.ext_out not in ["mp4"]:
+            args.ext_out = "mp4"
+            print("Output extension automatically set to %s." % args.ext_in)
+
+    if args.read_matching_file_names:
+        if not args.dirs_in:
+            parser.error("--read_matching_file_names requires --dirs_in to be specified.")
+        if args.cols * args.rows != len(args.dirs_in):
+            parser.error(f"Provided --dirs_in of {len(args.dirs_in)} directories and output stacking"
+                         f" of {args.cols} by {args.rows} images are not compatible.")
+
+    return args
