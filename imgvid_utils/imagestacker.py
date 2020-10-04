@@ -33,14 +33,14 @@ class ImageDataStore:
 
 class ImageGenerator:
     # TODO: allow multiple file extension inputs.
-    def __init__(self, directories, ext="jpg", num=1):
+    def __init__(self, directories, exts=None, num=1):
         """
         Pass in paths to directories containing images, and extension
         of desired image inputs. Will return num images each iteration.
         May sample unevenly.
 
         :param directories: Input directories.
-        :param ext:         Extension of file to return
+        :param exts:        Extension(s) of file to return
         :param num:         Number of images to return each iteration.
         """
         if isinstance(directories, str):
@@ -53,7 +53,7 @@ class ImageGenerator:
         if len(directories) % num != 0:
             raise ValueError("Directories will not be sampled evenly.")
 
-        self.ext = ext
+        self.ext = exts or ["jpg"]
         self.num = num
         self.files = {}
         self._max_iters = 0
@@ -228,12 +228,11 @@ def stack_images(images, dimensions, mode="rd"):
     :param mode:
     :return:
     """
-    x = dimensions[0]
-    y = dimensions[1]
+    x, y = dimensions
     images_stacked = [None] * y
     for i in range(y):
         images_stacked[i] = [None] * x
-    # TODO: Excessive quantities of magic occuring here
+    # TODO: Excessive quantities of magic occurring here
     if mode[0] in ("l", "r"):
         for i in range(x * y):
             images_stacked[i // x if mode[1] == "d" else y - i // x - 1][
@@ -343,7 +342,7 @@ def make_images_from_folders(
     mode="rd",
 ):
     """
-    Draws images with the given extension equally from each folder, resizes each
+    Draws images with the given extension(s) equally from each folder, resizes each
      individual image to width x height, concatenates them according to the mode, and saves them to dir_out.
     :param dirs_in:
     :param ext_in:
@@ -358,7 +357,7 @@ def make_images_from_folders(
     :param mode:
     :return:
     """
-    image_iter = ImageGenerator(dirs_in, ext=ext_in, num=cols * rows)
+    image_iter = ImageGenerator(dirs_in, exts=ext_in, num=cols * rows)
     os.makedirs(dir_out, exist_ok=True)
 
     image_iter.max_iters = max_imgs
@@ -594,6 +593,7 @@ def get_video_dimensions(videos_in: Union[List[str], str]):
     :return:            List of corresponding file dimensions.
     """
     dims_list = []
+
     for vid in videos_in:
         file = cv2.VideoCapture(vid)
         dims_list.append(
