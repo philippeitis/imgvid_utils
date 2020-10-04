@@ -339,7 +339,7 @@ def validate_extensions(parser, args):
     if mixed_ext(args.ext_in):
         parser.error("Must have exclusively image or video extensions.")
 
-    if has_video_exts(args.ext_in):
+    if fo.has_video_exts(args.ext_in):
         if args.to_imgs:
             parser.error("Can not select --to_imgs and have videos in ext in")
         args.to_vid = True
