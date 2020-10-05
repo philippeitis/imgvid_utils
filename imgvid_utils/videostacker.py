@@ -190,10 +190,11 @@ def make_video_from_array(
     # apiPreference may be required depending on cv2 version.
     if isinstance(files_in, str):
         files_in = [files_in]
+
     exts = set([os.path.splitext(file_name)[-1] for file_name in files_in])
 
     if width is None or height is None:
-        width, height = ims.get_first_dimensions_files(files_in, exts)
+        width, height = ims.get_dimensions_files(files_in, exts, ims.Resize.RESIZE_FIRST)
 
     vid = cv2.VideoWriter(
         filename=fo.form_file_name(dir_out, file_name, ext_out),
@@ -290,30 +291,34 @@ def split_video(
     :return:                Frame names in sequential order.
     """
     frames = []
+
     ext_out = ("" if ext_out[0] == "." else ".") + ext_out
+
     os.makedirs(dir_out, exist_ok=True)
+
     vid_iterator = VideoIterator(file_in)
-    num_frames: int = vid_iterator.num_frames
+    num_frames = vid_iterator.num_frames
+
     if end_frame != -1 and frame_count == -1:
         frame_count = min(end_frame, num_frames) - start_frame
     else:
-        frame_count: int = min(
+        frame_count = min(
             frame_count, num_frames
         ) if frame_count != -1 else num_frames
     if frame_count < 1:
         raise ValueError("Values passed in result in no or negative frames of output.")
+
     num_zeros = len(str(frame_count - 1))
 
-    for frame, counter in zip(vid_iterator, range(0, num_frames)):
-        # Need to eat initial video frames.
-        if frame_count > counter - start_frame >= 0:
-            temp_name = os.path.join(
-                dir_out,
-                f"{file_name}{str(counter - start_frame).zfill(num_zeros)}{ext_out}",
-            )
-            frames.append(temp_name)
-            cv2.imwrite(temp_name, frame[0])
-        elif counter > start_frame + frame_count:
-            return frames
+    for i in range(start_frame):
+        next(vid_iterator)
+
+    for frame, counter in zip(vid_iterator, range(frame_count)):
+        temp_name = os.path.join(
+            dir_out,
+            f"{file_name}{str(counter).zfill(num_zeros)}{ext_out}",
+        )
+        frames.append(temp_name)
+        cv2.imwrite(temp_name, frame[0])
 
     return frames
