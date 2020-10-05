@@ -255,9 +255,7 @@ def resize_images(images, dimensions: (int, int)):
     :param dimensions:
     :return:
     """
-    for i in range(len(images)):
-        images[i] = cv2.resize(images[i], dimensions)
-    return images
+    return [cv2.resize(img, dimensions) for img in images]
 
 
 def make_image_from_images(
@@ -378,200 +376,80 @@ def make_images_from_folders(
         )
 
 
+def get_dimensions_files(files_in: Union[List[str], str], ext: str, resize: Resize):
+    """
+    Returns the appropriate dimensions given resize.
+    :param files_in:    One or more files with dimensions of interest
+    :param ext:         The file extension(s).
+    :param resize:      A Resize enum.
+    :return:
+    """
+    if isinstance(files_in, str):
+        files_in = [files_in]
+
+    if len(files_in) == 0:
+        raise ValueError("get_dimensions_files requires at least one file.")
+
+    if resize == Resize.RESIZE_FIRST:
+        lmbda = return_first
+    elif resize == Resize.RESIZE_UP:
+        lmbda = return_max
+    elif resize == Resize.RESIZE_DOWN:
+        lmbda = return_min
+    else:
+        lmbda = return_first
+
+    if not fo.has_video_exts(ext):
+        return lmbda(get_img_dimensions(files_in))
+    else:
+        return lmbda(get_video_dimensions(files_in))
+
+
 def get_dimensions_dirs(dirs_in: Union[List[str], str], ext: str, resize: Resize):
     """
     Returns the appropriate dimensions given resize.
-    :param dirs_in:
-    :param ext:
-    :param resize:
+    :param dirs_in:     One or more directories with files of interest
+    :param ext:         The file extension(s).
+    :param resize:      A Resize enum.
     :return:
     """
-    if resize == Resize.RESIZE_FIRST:
-        return get_first_dimensions_dirs(dirs_in, ext)
-    if resize == Resize.RESIZE_UP:
-        return get_max_dimensions_dirs(dirs_in, ext)
-    if resize == Resize.RESIZE_DOWN:
-        return get_min_dimensions_dirs(dirs_in, ext)
-    else:
-        return get_first_dimensions_dirs(dirs_in, ext)
-
-
-def get_dimensions_files(files_in: Union[List[str], str], ext: str, resize: Resize):
-    if resize == Resize.RESIZE_FIRST:
-        return get_first_dimensions_files(files_in, ext)
-    if resize == Resize.RESIZE_UP:
-        return get_max_dimensions_files(files_in, ext)
-    if resize == Resize.RESIZE_DOWN:
-        return get_min_dimensions_files(files_in, ext)
-    else:
-        return get_first_dimensions_files(files_in, ext)
-
-
-def get_first_dimensions_dirs(
-        dirs_in: Union[List[str], str], ext_in: Union[List[str], str]
-):
-    """
-    Returns the dimensions of the first valid file found with any extension in ext_in. Order
-    :param dirs_in:
-    :param ext_in:
-    :return:
-    """
+    if isinstance(dirs_in, str):
+        return get_dimensions_files(fo.get_files(dirs_in, ext), ext, resize)
 
     if len(dirs_in) == 0:
         raise ValueError("Insufficient directories.")
 
-    if isinstance(dirs_in, str):
-        return get_first_dimensions_files(fo.get_files(dirs_in, ext_in), ext_in)
+    if resize == Resize.RESIZE_FIRST:
+        lmbda = return_first
+    elif resize == Resize.RESIZE_UP:
+        lmbda = return_max
+    elif resize == Resize.RESIZE_DOWN:
+        lmbda = return_min
     else:
-        for dir_in in dirs_in:
-            try:
-                return get_first_dimensions_files(fo.get_files(dir_in, ext_in), ext_in)
-            except ValueError:
-                continue
-        if isinstance(ext_in, str):
-            ext_in = [ext_in]
+        lmbda = return_first
+
+    dims = []
+    for dir_in in dirs_in:
+        try:
+            dims.append(
+                get_dimensions_files(fo.get_files(dir_in, ext), ext, resize)
+            )
+            if lmbda == return_first:
+                return_first(dims)
+        except ValueError:
+            continue
+    try:
+        return lmbda(dims)
+    except ValueError:
+        if isinstance(ext, str):
+            ext = [ext]
         raise ValueError(
-            "No files with given extension %s found in any directory."
-            % (", ".join(ext_in),)
+            "No files with given extension(s) %s found in any directory."
+            % (", ".join(ext),)
         )
 
 
-def get_min_dimensions_dirs(
-        dirs_in: Union[List[str], str], ext_in: Union[List[str], str]
-):
-    """
-    Returns the minimum dimensions of any file matching the specified extensions across all
-    directories in dirs_in.
-    :param dirs_in:
-    :param ext_in:
-    :return:
-    """
-
-    if len(dirs_in) == 0:
-        raise ValueError("Insufficient directories.")
-
-    if isinstance(dirs_in, str):
-        return get_min_dimensions_files(fo.get_files(dirs_in, ext_in), ext_in)
-    else:
-        dims = []
-        for dir_in in dirs_in:
-            try:
-                dims.append(
-                    get_min_dimensions_files(fo.get_files(dir_in, ext_in), ext_in)
-                )
-            except ValueError:
-                continue
-        try:
-            return return_min(dims)
-        except ValueError:
-            raise ValueError(
-                "No files with given extension %s found in any directory." % (ext_in,)
-            )
-
-
-def get_max_dimensions_dirs(
-        dirs_in: Union[List[str], str], ext_in: Union[List[str], str]
-):
-    """
-    Returns the maximum dimensions of any file matching the specified extensions across all
-    directories in dirs_in.
-    :param dirs_in:
-    :param ext_in:
-    :return:
-    """
-
-    if len(dirs_in) == 0:
-        raise ValueError("Insufficient directories.")
-
-    if isinstance(dirs_in, str):
-        return get_max_dimensions_files(fo.get_files(dirs_in, ext_in), ext_in)
-    else:
-        dims = []
-        for dir_in in dirs_in:
-            try:
-                dims.append(
-                    get_max_dimensions_files(fo.get_files(dir_in, ext_in), ext_in)
-                )
-            except ValueError:
-                continue
-        try:
-            return return_max(dims)
-        except ValueError:
-            if isinstance(ext_in, str):
-                ext_str = ext_in
-            else:
-                ext_str = ", ".join(ext_in)
-
-            raise ValueError(
-                f"No files with extension(s) ({ext_str}) found in any directory."
-            )
-
-
-def get_first_dimensions_files(
-        files_in: Union[Iterable[str], str], ext_in: Union[Collection[str], str]
-):
-    """
-    Will get the dimensions of the first file in files_in
-
-    :param files_in:
-    :param ext_in:
-    :return:
-    """
-    if isinstance(files_in, str):
-        files_in = [files_in]
-
-    if len(files_in) == 0:
-        raise ValueError("get_first_dimensions_files requires at least one file.")
-
-    if not fo.has_video_exts(ext_in):
-        return return_first(get_img_dimensions(files_in))
-    else:
-        return return_first(get_video_dimensions(files_in))
-
-
-def get_min_dimensions_files(
-        files_in: Union[List[str], str], ext_in: Union[List[str], str]
-):
-    """
-    Gets the smallest dimensions of the input files.
-    :param files_in:
-    :param ext_in:
-    :return:
-    """
-    if isinstance(files_in, str):
-        files_in = [files_in]
-
-    if len(files_in) == 0:
-        raise ValueError("get_min_dimensions_files requires at least one file.")
-
-    if not fo.has_video_exts(ext_in):
-        return return_min(get_img_dimensions(files_in))
-    else:
-        return return_min(get_video_dimensions(files_in))
-
-
-def get_max_dimensions_files(
-        files_in: Union[List[str], str], ext_in: Union[List[str], str]
-):
-    """
-    Gets the minimum and maximum dimensions of the files in the list with the given extension(s).
-    :param files_in:    A list of input files for which to get dimensions for.
-    :param ext_in:      The format of the files (eg. mp4, jpeg, png)
-    :return:
-    """
-    if isinstance(files_in, str):
-        files_in = [files_in]
-
-    if len(files_in) == 0:
-        raise ValueError("get_max_dimensions_files requires at least one file.")
-
-    if not fo.has_video_exts(ext_in):
-        return return_max(get_img_dimensions(files_in))
-    else:
-        return return_max(get_video_dimensions(files_in))
-
-
-def get_img_dimensions(imgs_in: Union[List[str], str]):
+def get_img_dimensions(imgs_in: List[str]):
     """
     Given a list of file paths, returns the dimensions of the images corresponding to the file paths
     :param imgs_in:     List of file paths corresponding to image files.
@@ -585,7 +463,7 @@ def get_img_dimensions(imgs_in: Union[List[str], str]):
     return dims_list
 
 
-def get_video_dimensions(videos_in: Union[List[str], str]):
+def get_video_dimensions(videos_in: List[str]):
     """
     Given a list of file paths, returns the dimensions of the videos corresponding to the file paths.
 
