@@ -347,7 +347,7 @@ def make_images_from_folders(
     :param dir_out:
     :param file_name:
     :param ext_out:
-    :param max_imgs:
+    :param max_imgs:        Maximum number of output images.
     :param cols:
     :param rows:
     :param width:
@@ -356,10 +356,11 @@ def make_images_from_folders(
     :return:
     """
     image_iter = ImageGenerator(dirs_in, exts=ext_in, num=cols * rows)
+    image_iter.max_iters = image_iter.max_iters // max_imgs
+
     os.makedirs(dir_out, exist_ok=True)
 
-    image_iter.max_iters = max_imgs
-    num_zeros = len(str(image_iter.max_iters // image_iter.num - 1))
+    num_zeros = len(str(image_iter.max_iters - 1))
 
     for counter, image_data in enumerate(image_iter):
         temp_file_name = fo.form_file_name(
@@ -376,11 +377,11 @@ def make_images_from_folders(
         )
 
 
-def get_dimensions_files(files_in: Union[List[str], str], ext: str, resize: Resize):
+def get_dimensions_files(files_in: Union[List[str], str], exts: str, resize: Resize):
     """
     Returns the appropriate dimensions given resize.
     :param files_in:    One or more files with dimensions of interest
-    :param ext:         The file extension(s).
+    :param exts:        The file extension(s).
     :param resize:      A Resize enum.
     :return:
     """
@@ -399,7 +400,7 @@ def get_dimensions_files(files_in: Union[List[str], str], ext: str, resize: Resi
     else:
         lmbda = return_first
 
-    if not fo.has_video_exts(ext):
+    if not fo.has_video_exts(exts):
         return lmbda(get_img_dimensions(files_in))
     else:
         return lmbda(get_video_dimensions(files_in))
