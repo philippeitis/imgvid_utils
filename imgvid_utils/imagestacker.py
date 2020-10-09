@@ -1,6 +1,6 @@
 import cv2
 from enum import Enum
-from typing import Union, List, Iterable, Collection
+from typing import Union, List, Tuple
 import os
 import numpy as np
 
@@ -12,6 +12,19 @@ class Resize(Enum):
     RESIZE_DOWN = 4
     RESIZE_FIRST = 5
     RESIZE_NONE = 0
+
+
+class Stacking:
+    __slots__ = ["cols", "rows", "mode"]
+
+    def __init__(self, cols, rows, mode):
+        self.cols = cols
+        self.rows = rows
+        self.mode = mode
+
+    @classmethod
+    def default(cls):
+        return cls(1, 1, "rd")
 
 
 class ImageDataStore:
@@ -216,7 +229,7 @@ class ImageGeneratorMatchToName:
             raise StopIteration()
 
 
-def stack_images(images, dimensions, mode="rd"):
+def stack_images(images, stacking: Stacking):
     """
     Expects an array of images a tuple (x,y) that represents how the images will be stacked, and a mode representing
     how the array will be stacked:
@@ -224,11 +237,12 @@ def stack_images(images, dimensions, mode="rd"):
     eg. images = [img]*6, dimensions = (2,3), mode='rd':
     2 images per row, 3 rows, ordered from left to right, up to down
     :param images:
-    :param dimensions:
-    :param mode:
+    :param stacking:
     :return:
     """
-    x, y = dimensions
+    x, y = stacking.cols, stacking.rows
+    mode = stacking.mode
+
     images_stacked = [None] * y
     for i in range(y):
         images_stacked[i] = [None] * x
@@ -263,14 +277,24 @@ def make_image_from_images(
     dir_out="./",
     file_name="output",
     ext_out="jpg",
-    cols: int = 1,
-    rows: int = 1,
-    width: int = 640,
-    height: int = 480,
-    mode: str = "rd",
+    stacking: Stacking = None,
+    size: Tuple[int, int] = (640, 480),
 ):
+    """
+
+    :param files_in:
+    :param dir_out:
+    :param file_name:
+    :param ext_out:
+    :param stacking:
+    :param size:         Dimensions of each component image in px.
+    :return:
+    """
     file_name = fo.form_file_name(dir_out, file_name, ext_out)
     os.makedirs(os.path.dirname(file_name), exist_ok=True)
+
+    stacking = stacking or Stacking.default()
+
     if isinstance(files_in, str):
         cv2.imwrite(file_name, cv2.imread(files_in))
     elif len(files_in) == 1:
@@ -282,7 +306,7 @@ def make_image_from_images(
         cv2.imwrite(
             file_name,
             stack_images(
-                resize_images(images, (width, height)), (cols, rows), mode=mode
+                resize_images(images, size), stacking
             ),
         )
 
@@ -291,15 +315,26 @@ def make_images_from_folders_match(
     dirs_in,
     dir_out,
     max_imgs=None,
-    cols=1,
-    rows=1,
+    stacking: Stacking = None,
     resize_opt: Resize = Resize.RESIZE_FIRST,
-    width=None,
-    height=None,
-    mode="rd",
+    size: Tuple[int, int] = None,
 ):
+    """
+
+    :param dirs_in:
+    :param dir_out:
+    :param max_imgs:
+    :param cols:
+    :param rows:
+    :param resize_opt:
+    :param size:         Dimensions of each component image in px.
+    :param mode:
+    :return:
+    """
     os.makedirs(dir_out, exist_ok=True)
     image_iter = ImageGeneratorMatchToName(dirs_in, max_imgs)
+
+    stacking = stacking or Stacking.default()
 
     if resize_opt == Resize.RESIZE_UP:
         fn = return_max
@@ -308,12 +343,12 @@ def make_images_from_folders_match(
     else:
         fn = return_first
 
-    if width is None or height is None:
+    if size is None:
         def dims(images):
             return fn([(image.shape[1], image.shape[0]) for image in images])
     else:
         def dims(_):
-            return width, height
+            return size
 
     for image_data in image_iter:
         images = image_data.images
@@ -321,7 +356,7 @@ def make_images_from_folders_match(
         cv2.imwrite(
             file_name,
             stack_images(
-                resize_images(images, dims(images)), (cols, rows), mode=mode
+                resize_images(images, dims(images)), stacking
             ),
         )
 
@@ -333,11 +368,8 @@ def make_images_from_folders(
     file_name: str = "output",
     ext_out="jpg",
     max_imgs: int = None,
-    cols: int = 1,
-    rows: int = 1,
-    width: int = 640,
-    height: int = 480,
-    mode="rd",
+    stacking: Stacking = None,
+    size: Tuple[int, int] = (640, 480),
 ):
     """
     Draws images with the given extension(s) equally from each folder, resizes each
@@ -348,19 +380,19 @@ def make_images_from_folders(
     :param file_name:
     :param ext_out:
     :param max_imgs:        Maximum number of output images.
-    :param cols:
-    :param rows:
-    :param width:
-    :param height:
-    :param mode:
+    :param stacking:
+    :param size:         Dimensions of each component image in px.
     :return:
     """
-    image_iter = ImageGenerator(dirs_in, exts=ext_in, num=cols * rows)
+    stacking = stacking or Stacking.default()
+
+    image_iter = ImageGenerator(dirs_in, exts=ext_in, num=stacking.cols * stacking.rows)
     image_iter.max_iters = image_iter.max_iters // max_imgs
 
     os.makedirs(dir_out, exist_ok=True)
-
     num_zeros = len(str(image_iter.max_iters - 1))
+
+    stacking = stacking or Stacking.default()
 
     for counter, image_data in enumerate(image_iter):
         temp_file_name = fo.form_file_name(
@@ -370,9 +402,8 @@ def make_images_from_folders(
         cv2.imwrite(
             temp_file_name,
             stack_images(
-                resize_images(image_data.images, (width, height)),
-                (cols, rows),
-                mode=mode,
+                resize_images(image_data.images, size),
+                stacking,
             ),
         )
 

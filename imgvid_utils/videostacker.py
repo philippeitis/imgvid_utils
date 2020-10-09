@@ -5,6 +5,7 @@ import os
 
 from . import file_ops as fo
 from . import imagestacker as ims
+from .imagestacker import Stacking
 
 
 def get_video_dims(video) -> Tuple[int, int]:
@@ -32,8 +33,7 @@ class VideoIterator:
         self.last_frame = [None] * len(self.paths)
         self.active_vid = 0
         self.fps = 0
-        self.width = None
-        self.height = None
+        self.dims = None
         self.num_frames = 0
         self._load_videos()
 
@@ -42,8 +42,8 @@ class VideoIterator:
         If one or more dimensions are not already set, sets the image dimensions automatically.
         Assumes that all videos have been initialized.
         """
-        if self.height is None or self.width is None:
-            self.width, self.height = ims.return_min([get_video_dims(video) for video in self.videos])
+        if self.dims is None:
+            self.dims = ims.return_min([get_video_dims(video) for video in self.videos])
 
     def _load_video(self, counter):
         video = self.paths[counter]
@@ -103,10 +103,8 @@ def make_video_from_images(
     ext_out="mp4",
     video_format="mp4v",
     fps=24,
-    cols=1,
-    rows=1,
-    width=None,
-    height=None,
+    stacking: Stacking = None,
+    size: Tuple[int, int] = None,
 ):
     """
     Creates, and saves a video with the file_name, encoded using video_format containing each video in files_in,
@@ -127,10 +125,8 @@ def make_video_from_images(
     :param ext_out:         output extension for the video (default mp4)
     :param video_format:    format to encode the video in (default mp4v)
     :param fps:             desired fps of output video.
-    :param cols:            number of images placed side by side (default 1)
-    :param rows:            number of images placed vertically (default 1)
-    :param width:           width of each sub component in px (resulting video will be width * col px high).
-    :param height:          height of each sub component in px (resulting video will be height * row px high).
+    :param stacking:
+    :param size:            Dimensions of each component image in px.
     :return:                nothing
     """
 
@@ -138,20 +134,25 @@ def make_video_from_images(
     if ext_out not in supported_extensions:
         raise ValueError("Extension %s is not currently supported." % (ext_out,))
 
+    stacking = stacking or Stacking.default()
+
     video_format = cv2.VideoWriter_fourcc(*video_format)
     # apiPreference may be required depending on cv2 version.
-    image_iter = ims.ImageGenerator(dirs_in, ext_in, cols * rows)
+    image_iter = ims.ImageGenerator(dirs_in, ext_in, stacking.cols * stacking.rows)
+
+    (width, height) = size
+
     vid = cv2.VideoWriter(
         filename=fo.form_file_name(dir_out, file_name, ext_out),
         apiPreference=0,
         fourcc=video_format,
         fps=fps,
-        frameSize=(width * cols, height * rows),
+        frameSize=(width * stacking.cols, height * stacking.rows),
     )
     for images_data in image_iter:
         vid.write(
             ims.stack_images(
-                ims.resize_images(images_data.images, (width, height)), (cols, rows)
+                ims.resize_images(images_data.images, (width, height)), stacking
             )
         )
     vid.release()
@@ -164,8 +165,7 @@ def make_video_from_array(
     ext_out="mp4",
     video_format="mp4v",
     fps=24,
-    width=None,
-    height=None,
+    size: Tuple[int, int] = None,
 ):
     """
     Creates, and saves a video with the file_name, encoded using video_format containing each video in files_in,
@@ -177,8 +177,7 @@ def make_video_from_array(
     :param ext_out:         output extension for the video (default mp4)
     :param video_format:    format to encode the video in (default mp4v)
     :param fps:             desired fps of output video.
-    :param width:           width of each sub component in px (resulting video will be width * col px high).
-    :param height:          height of each sub component in px (resulting video will be height * row px high).
+    :param size:            Dimensions of each component image in px.
     :return:                nothing
     """
 
@@ -191,22 +190,21 @@ def make_video_from_array(
     if isinstance(files_in, str):
         files_in = [files_in]
 
-    exts = set([os.path.splitext(file_name)[-1] for file_name in files_in])
+    exts = list({os.path.splitext(file_name)[-1] for file_name in files_in})
 
-    if width is None or height is None:
-        width, height = ims.get_dimensions_files(files_in, exts, ims.Resize.RESIZE_FIRST)
+    size = size or ims.get_dimensions_files(files_in, exts, ims.Resize.RESIZE_FIRST)
 
     vid = cv2.VideoWriter(
         filename=fo.form_file_name(dir_out, file_name, ext_out),
         apiPreference=0,
         fourcc=video_format,
         fps=fps,
-        frameSize=(width, height),
+        frameSize=size,
     )
 
     for image in files_in:
         im = cv2.imread(image)
-        vid.write(ims.resize_images([im], (width, height))[0])
+        vid.write(ims.resize_images([im], size)[0])
     vid.release()
 
 
@@ -218,10 +216,8 @@ def make_video_from_videos(
     file_name: str = "output",
     ext_out: str = "mp4",
     video_format: str = "mp4v",
-    cols: int = 1,
-    rows: int = 1,
-    width: int = None,
-    height: int = None,
+    stacking: Stacking = None,
+    size: Tuple[int, int] = None,
 ) -> None:
     """
     Creates, and saves a video with the file_name, encoded using video_format containing each video in files_in,
@@ -232,10 +228,8 @@ def make_video_from_videos(
     :param file_name:       Name of output video
     :param ext_out:         output extension for the video (default mp4)
     :param video_format:    format to encode the video in (default mp4v)
-    :param cols:            number of images placed side by side (default 1)
-    :param rows:            number of images placed vertically (default 1)
-    :param width:           width of each sub component in px (resulting video will be width * col px high).
-    :param height:          height of each sub component in px (resulting video will be height * row px high).
+    :param stacking:
+    :param size:         Dimensions of each component image in px.
     :return:                nothing
     """
 
@@ -243,24 +237,23 @@ def make_video_from_videos(
     if ext_out not in supported_extensions:
         raise ValueError("Extension %s is not currently supported." % (ext_out,))
 
-    video_format = cv2.VideoWriter_fourcc(*video_format)
-    video_iter = VideoIterator(files_in, cols * rows)
+    stacking = stacking or Stacking.default()
 
-    if width is None:
-        width = video_iter.width
-    if height is None:
-        height = video_iter.height
+    video_format = cv2.VideoWriter_fourcc(*video_format)
+    video_iter = VideoIterator(files_in, stacking.cols * stacking.rows)
+
+    (width, height) = size or video_iter.dims
 
     vid = cv2.VideoWriter(
         filename=fo.form_file_name(dir_out, file_name, ext_out),
         apiPreference=0,
         fourcc=video_format,
         fps=video_iter.fps,
-        frameSize=(width * cols, height * rows),
+        frameSize=(width * stacking.cols, height * stacking.rows),
     )
     for images in video_iter:
         vid.write(
-            ims.stack_images(ims.resize_images(images, (width, height)), (cols, rows))
+            ims.stack_images(ims.resize_images(images, (width, height)), stacking)
         )
     vid.release()
 

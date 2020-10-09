@@ -347,7 +347,7 @@ def validate_extensions(parser, args):
     if args.to_vid:
         if args.ext_out not in ["mp4"]:
             args.ext_out = "mp4"
-            print("Output extension automatically set to %s." % args.ext_in)
+            print("Output extension automatically set to %s." % args.ext_out)
 
 
 def validate_arguments(parser):
