@@ -72,7 +72,7 @@ def parse_arguments():
         choices=["png", "jpg", "mp4"],
         default="jpg",
         help="Outputs file with given extension."
-             " Overriden by --to_vid, --to_img, and --to_imgs",
+             " Overridden by --to_vid, --to_img, and --to_imgs",
     )
 
     parser.add_argument(
@@ -116,8 +116,8 @@ def parse_arguments():
         help="Will output many image files (default .jpg)",
     )
 
-    resize_in_out = parser.add_mutually_exclusive_group()
-    resize_in_out.add_argument(
+    resize = parser.add_mutually_exclusive_group()
+    resize.add_argument(
         "--resize_in",
         dest="resize_in",
         nargs=2,
@@ -125,7 +125,7 @@ def parse_arguments():
         help="Sets the dimensions of the input image. "
              "Not compatible with -resize_out or -resize_down or -resize_up",
     )
-    resize_in_out.add_argument(
+    resize.add_argument(
         "--resize_out",
         dest="resize_out",
         nargs=2,
@@ -134,29 +134,16 @@ def parse_arguments():
              "Not compatible with -resize_in or -resize_down or -resize_up",
     )
 
-    resize_opts = parser.add_mutually_exclusive_group()
-    resize_opts.add_argument(
-        "--resize_up",
-        dest="resize_up",
-        action="store_true",
-        help="Resizes all input images to the largest image in the set. "
-             "Computed by area of image (eg. width * height). Will override --resize_in, --resize_out."
-             " Not compatible with -resize_down, -resize_first.",
-    )
-    resize_opts.add_argument(
-        "--resize_down",
-        dest="resize_down",
-        action="store_true",
-        help="Resizes all input images to the smallest image in the set. "
-             "Computed by area of image (eg. width * height). Will override --resize_in, --resize_out."
-             " Not compatible with --resize_up, --resize_first",
-    )
-    resize_opts.add_argument(
-        "--resize_first",
-        dest="resize_first",
-        action="store_true",
-        help="Resizes all input images to first small image in the set. --resize_in, --resize_out. "
-             " Not compatible with --resize_up, --resize_down.",
+    resize.add_argument(
+        "--resize",
+        dest="resize",
+        choices=[val for val in ims.Resize],
+        type=get_resize_enum,
+        default="first",
+        help="Resizes the images according to the choice. "
+             "down resizes each image to the smallest image. "
+             "up resizes each image to the largest image. "
+             "first resizes each image to the first image seen."
     )
 
     parser.add_argument(
@@ -217,21 +204,23 @@ def check_ext(ext1: str, ext2: str):
 
 
 # Assumes args has resize_up, resize_down, and resize_first
-def get_resize_enum(args) -> ims.Resize:
+def get_resize_enum(s) -> ims.Resize:
     """
     Identifies which option has been selected.
 
-    :param args:
+    :param s:
     :return:
     """
-    if args.resize_up:
-        return ims.Resize.RESIZE_UP
-    elif args.resize_down:
-        return ims.Resize.RESIZE_DOWN
-    elif args.resize_first:
-        return ims.Resize.RESIZE_FIRST
-    else:
-        return ims.Resize.RESIZE_NONE
+    if s == "up":
+        return ims.Resize.UP
+
+    if s == "down":
+        return ims.Resize.DOWN
+
+    if s == "first":
+        return ims.Resize.FIRST
+
+    return ims.Resize.NONE
 
 
 class IsPlural:
@@ -246,11 +235,11 @@ class IsPlural:
 
 class PluralizableString:
     def __init__(
-        self,
-        base_string: str,
-        non_plural_end: str,
-        plural_end: str,
-        pluralizable: IsPlural,
+            self,
+            base_string: str,
+            non_plural_end: str,
+            plural_end: str,
+            pluralizable: IsPlural,
     ):
         self.text: str = base_string + (
             plural_end if pluralizable.is_plural else non_plural_end

@@ -86,20 +86,20 @@ def get_files(directory: str, ext: Union[List[str], str]) -> List[str]:
     jpg_subset = [".jpeg", ".jpg"]
     png_subset = [".png"]
     if ext is None:
-        extensions = jpg_subset + png_subset
+        ext = jpg_subset + png_subset
     elif isinstance(ext, str):
         if "jpg" in ext.lower():
-            extensions = jpg_subset
+            ext = jpg_subset
         elif "png" in ext.lower():
-            extensions = png_subset
+            ext = png_subset
         elif "mp4" in ext.lower():
-            extensions = [".mp4", ".MP4"]
+            ext = [".mp4", ".MP4"]
         else:
-            extensions = [ext]
+            ext = [ext]
     else:
-        extensions = ext
+        ext = ext
 
-    extensions = [("." if extx[0] != "." else "") + extx for extx in extensions]
+    extensions = [prepend_dot(extx) for extx in ext]
     directory = append_forward_slash_path(directory)
     frames = {
         frame for ext1 in extensions for frame in glob.glob(f"{directory}*{match_all_cases(ext1)}")
@@ -149,6 +149,10 @@ def get_first_n_files(
     return output
 
 
+def prepend_dot(ext: str) -> str:
+    return ("." if ext[0] != "." else "") + ext
+
+
 def append_forward_slash_path(
     paths: Union[List[str], str]
 ) -> Union[List[str], str, None]:
@@ -179,8 +183,7 @@ def clear_files(folder: str, *argv) -> None:
     """
     folder = append_forward_slash_path(folder)
     for ext in argv:
-        ext = ("." if ext[0] != "." else "") + ext
-        for f in glob.glob(os.path.join(folder) + "*" + ext):
+        for f in glob.glob(os.path.join(folder) + "*" + prepend_dot(ext)):
             os.remove(f)
 
 
@@ -194,10 +197,9 @@ def form_file_name(dir_out: str, file_name: str, ext: str) -> str:
     """
     # Needs to check that file_name doesn't contain an extension.
     split_name = os.path.splitext(file_name)
-    ext = ("." if ext[0] != "." else "") + ext
     if len(split_name) > 1:
         file_name = ".".join(split_name[:-1])
-    return os.path.join(dir_out, file_name + ext)
+    return os.path.join(dir_out, file_name + prepend_dot(ext))
 
 
 def get_ext(file):

@@ -8,10 +8,13 @@ from . import file_ops as fo
 
 
 class Resize(Enum):
-    RESIZE_UP = 3
-    RESIZE_DOWN = 4
-    RESIZE_FIRST = 5
-    RESIZE_NONE = 0
+    UP = 3
+    DOWN = 4
+    FIRST = 5
+    NONE = 0
+
+    def __str__(self):
+        return self.name.lower()
 
 
 class Stacking:
@@ -185,10 +188,11 @@ class ImageGeneratorMatchToName:
                 self._max_iters = max_iters
 
     def _load_dir(self, counter):
-        dir = self.directories[counter]
-        files = fo.get_files(dir, self.exts)
+        directory = self.directories[counter]
+        files = fo.get_files(directory, self.exts)
+
         if not files:
-            raise ValueError(f"No files found in {dir}")
+            raise ValueError(f"No files found in {directory}")
 
         self.file_location_in_dir[counter] = {
             os.path.basename(f_name): f_name for f_name in files
@@ -316,7 +320,7 @@ def make_images_from_folders_match(
     dir_out,
     max_imgs=None,
     stacking: Stacking = None,
-    resize_opt: Resize = Resize.RESIZE_FIRST,
+    resize_opt: Resize = Resize.FIRST,
     size: Tuple[int, int] = None,
 ):
     """
@@ -324,21 +328,20 @@ def make_images_from_folders_match(
     :param dirs_in:
     :param dir_out:
     :param max_imgs:
-    :param cols:
-    :param rows:
+    :param stacking:
     :param resize_opt:
     :param size:         Dimensions of each component image in px.
-    :param mode:
     :return:
     """
     os.makedirs(dir_out, exist_ok=True)
+
     image_iter = ImageGeneratorMatchToName(dirs_in, max_imgs)
 
     stacking = stacking or Stacking.default()
 
-    if resize_opt == Resize.RESIZE_UP:
+    if resize_opt == Resize.UP:
         fn = return_max
-    elif resize_opt == Resize.RESIZE_DOWN:
+    elif resize_opt == Resize.DOWN:
         fn = return_min
     else:
         fn = return_first
@@ -381,13 +384,13 @@ def make_images_from_folders(
     :param ext_out:
     :param max_imgs:        Maximum number of output images.
     :param stacking:
-    :param size:         Dimensions of each component image in px.
+    :param size:            Dimensions of each component image in px.
     :return:
     """
     stacking = stacking or Stacking.default()
 
     image_iter = ImageGenerator(dirs_in, exts=ext_in, num=stacking.cols * stacking.rows)
-    image_iter.max_iters = image_iter.max_iters // max_imgs
+    image_iter.max_iters = image_iter.max_iters // (max_imgs if max_imgs else 1)
 
     os.makedirs(dir_out, exist_ok=True)
     num_zeros = len(str(image_iter.max_iters - 1))
@@ -408,7 +411,11 @@ def make_images_from_folders(
         )
 
 
-def get_dimensions_files(files_in: Union[List[str], str], exts: str, resize: Resize):
+def get_dimensions_files(
+    files_in: Union[List[str], str],
+    exts: Union[List[str], str],
+    resize: Resize
+):
     """
     Returns the appropriate dimensions given resize.
     :param files_in:    One or more files with dimensions of interest
@@ -422,11 +429,11 @@ def get_dimensions_files(files_in: Union[List[str], str], exts: str, resize: Res
     if len(files_in) == 0:
         raise ValueError("get_dimensions_files requires at least one file.")
 
-    if resize == Resize.RESIZE_FIRST:
+    if resize == Resize.FIRST:
         lmbda = return_first
-    elif resize == Resize.RESIZE_UP:
+    elif resize == Resize.UP:
         lmbda = return_max
-    elif resize == Resize.RESIZE_DOWN:
+    elif resize == Resize.DOWN:
         lmbda = return_min
     else:
         lmbda = return_first
@@ -451,11 +458,11 @@ def get_dimensions_dirs(dirs_in: Union[List[str], str], ext: str, resize: Resize
     if len(dirs_in) == 0:
         raise ValueError("Insufficient directories.")
 
-    if resize == Resize.RESIZE_FIRST:
+    if resize == Resize.FIRST:
         lmbda = return_first
-    elif resize == Resize.RESIZE_UP:
+    elif resize == Resize.UP:
         lmbda = return_max
-    elif resize == Resize.RESIZE_DOWN:
+    elif resize == Resize.DOWN:
         lmbda = return_min
     else:
         lmbda = return_first

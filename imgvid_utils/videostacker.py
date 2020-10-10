@@ -51,7 +51,7 @@ class VideoIterator:
         self.videos[counter] = cv2.VideoCapture(video)
         self.videos_completed[counter] = False
         if self.fps != 0:
-            if int(self.fps) != int(self.videos[counter].get(cv2.CAP_PROP_FPS)):
+            if self.fps != self.videos[counter].get(cv2.CAP_PROP_FPS):
                 raise ValueError("Video FPS does not match.")
         else:
             self.fps = self.videos[counter].get(cv2.CAP_PROP_FPS)
@@ -192,7 +192,7 @@ def make_video_from_array(
 
     exts = list({os.path.splitext(file_name)[-1] for file_name in files_in})
 
-    size = size or ims.get_dimensions_files(files_in, exts, ims.Resize.RESIZE_FIRST)
+    size = size or ims.get_dimensions_files(files_in, exts, ims.Resize.FIRST)
 
     vid = cv2.VideoWriter(
         filename=fo.form_file_name(dir_out, file_name, ext_out),

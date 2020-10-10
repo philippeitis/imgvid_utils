@@ -1,48 +1,47 @@
-def get_correct_dimensions_vstack(args):
-    if args.resize_in:
-        return args.resize_in
-    elif args.resize_out:
-        image_width, image_height = args.resize_out
-        if args.vstack and image_height % len(args.vstack) != 0:
-            raise EnvironmentError(
-                "Output height must be a multiple of image stacking number."
-            )
-        if args.hstack and image_width % len(args.hstack) != 0:
-            raise EnvironmentError(
-                "Output width must be a multiple of image stacking number."
-            )
-        cols = len(args.hstack) if args.hstack else 1
-        rows = len(args.vstack) if args.vstack else 1
-        return image_width // cols, image_height // rows
+def validate_resize_out(cols, rows, dims):
+    width, height = dims
 
-    return ims.get_dimensions_files(
-        args.vstack or args.hstack, args.ext_in, ap.get_resize_enum(args)
-    )
+    if width % cols != 0:
+        raise EnvironmentError(
+            "Output width must be a multiple of image stacking number."
+        )
+
+    if height % rows != 0:
+        raise EnvironmentError(
+            "Output height must be a multiple of image stacking number."
+        )
+
+    return width // cols, height // rows
 
 
 def get_correct_dimensions(args):
     if args.resize_in:
         return args.resize_in
-    elif args.resize_out:
-        image_width, image_height = args.resize_out
-        if image_width % args.cols != 0:
-            raise EnvironmentError(
-                "Output width must be a multiple of image stacking number."
-            )
-        if image_height % args.rows != 0:
-            raise EnvironmentError(
-                "Output height must be a multiple of image stacking number."
-            )
-        return image_width // args.cols, image_height // args.rows
+
+    if args.resize_out:
+        if args.vstack or args.hstack:
+            cols, rows = (len(args.hstack), 1) if args.hstack else (1, len(args.vstack))
+        else:
+            cols, rows = args.cols, args.rows
+        return validate_resize_out(cols, rows, args.resize_out)
+
+    if args.read_matching_file_names:
+        return None
 
     if args.dirs_in:
         return ims.get_dimensions_dirs(
-            args.dirs_in, args.ext_in, ap.get_resize_enum(args)
+            args.dirs_in, args.ext_in, args.resize
         )
-    else:
-        return ims.get_dimensions_files(
-            args.files_in, args.ext_in, ap.get_resize_enum(args)
+
+    files = (args.vstack or args.vstack) or args.files_in
+
+    if not files:
+        raise EnvironmentError(
+            "No files provided."
         )
+    return ims.get_dimensions_files(
+        files, args.ext_in, args.resize
+    )
 
 
 def generate_stacking(args):
@@ -64,6 +63,8 @@ if __name__ == "__main__":
     args = ap.parse_arguments()
     stacking = generate_stacking(args)
 
+    size = get_correct_dimensions(args)
+
     if args.vstack or args.hstack:
         files = args.vstack or args.hstack
         ims.make_image_from_images(
@@ -72,29 +73,22 @@ if __name__ == "__main__":
             os.path.basename(args.dest),
             fo.get_ext(args.dest),
             stacking=stacking,
-            size=get_correct_dimensions_vstack(args),
+            size=size,
         )
         exit()
 
     os.makedirs(os.path.dirname(args.dir_out), exist_ok=True)
 
     if args.read_matching_file_names:
-        size = (None, None)
-        if args.resize_in:
-            size = args.resize_in
-        elif args.resize_out:
-            size = args.resize_out
         ims.make_images_from_folders_match(
             args.dirs_in,
             args.dir_out,
             args.max_imgs,
             stacking,
-            ap.get_resize_enum(args),
+            args.resize,
             size,
         )
         exit()
-
-    size = get_correct_dimensions(args)
 
     print(
         "Output file will have dimensions: %d x %d px."
@@ -111,7 +105,7 @@ if __name__ == "__main__":
                     args.ext_in,
                     args.dir_out,
                     args.name,
-                    args.ext_out,
+                    ext_out=args.ext_out,
                     stacking=stacking,
                     size=size,
                     fps=args.fps,
