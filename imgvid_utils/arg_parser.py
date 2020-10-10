@@ -27,12 +27,6 @@ def parse_arguments():
         help="List any images you want to stack horizontally"
     )
 
-    lazy_parser.add_argument(
-        "--dest",
-        type=str,
-        help="Destination image"
-    )
-
     parser = parser_y.add_argument_group()
     # TODO: excess images in directory? Insufficient images in directory?
 
@@ -52,7 +46,7 @@ def parse_arguments():
         nargs="+",
         type=str,
         help="List any images or videos you want to use. Not compatible"
-             "with -to_imgs, dirs_in. If -to_vid, must be videos.",
+             "with --dirs_in. If --to_vid, must be videos.",
     )
 
     parser.add_argument(
@@ -70,35 +64,28 @@ def parse_arguments():
         dest="ext_out",
         type=str,
         choices=["png", "jpg", "mp4"],
-        default="jpg",
+        default=None,
         help="Outputs file with given extension."
-             " Overriden by --to_vid, --to_img, and --to_imgs",
+             " Overridden by --to_vid, --to_img, --to_imgs, and set from --name by default.",
     )
 
     parser.add_argument(
         "--dir_out",
         dest="dir_out",
         type=str,
-        default="./output/",
-        help="Output directory.",
+        default=None,
+        help="Output directory. Set from --name by default.",
     )
 
     parser.add_argument(
         "--name",
         dest="name",
         type=str,
-        default="file",
-        help="File name. Do not include in dir_out",
+        default="./output/file.jpg",
+        help="File name. Sets --dir_out and --ext_out if not already specified.",
     )
 
     output_formats = parser.add_mutually_exclusive_group()
-
-    # output_formats.add_argument(
-    #     "--to_img",
-    #     dest="to_img",
-    #     action="store_true",
-    #     help="Will output an image file (default .jpg). Not compatible with --to_vid",
-    # )
 
     output_formats.add_argument(
         "--to_vid",
@@ -116,8 +103,8 @@ def parse_arguments():
         help="Will output many image files (default .jpg)",
     )
 
-    resize_in_out = parser.add_mutually_exclusive_group()
-    resize_in_out.add_argument(
+    resize = parser.add_mutually_exclusive_group()
+    resize.add_argument(
         "--resize_in",
         dest="resize_in",
         nargs=2,
@@ -125,7 +112,8 @@ def parse_arguments():
         help="Sets the dimensions of the input image. "
              "Not compatible with -resize_out or -resize_down or -resize_up",
     )
-    resize_in_out.add_argument(
+
+    resize.add_argument(
         "--resize_out",
         dest="resize_out",
         nargs=2,
@@ -134,29 +122,16 @@ def parse_arguments():
              "Not compatible with -resize_in or -resize_down or -resize_up",
     )
 
-    resize_opts = parser.add_mutually_exclusive_group()
-    resize_opts.add_argument(
-        "--resize_up",
-        dest="resize_up",
-        action="store_true",
-        help="Resizes all input images to the largest image in the set. "
-             "Computed by area of image (eg. width * height). Will override --resize_in, --resize_out."
-             " Not compatible with -resize_down, -resize_first.",
-    )
-    resize_opts.add_argument(
-        "--resize_down",
-        dest="resize_down",
-        action="store_true",
-        help="Resizes all input images to the smallest image in the set. "
-             "Computed by area of image (eg. width * height). Will override --resize_in, --resize_out."
-             " Not compatible with --resize_up, --resize_first",
-    )
-    resize_opts.add_argument(
-        "--resize_first",
-        dest="resize_first",
-        action="store_true",
-        help="Resizes all input images to first small image in the set. --resize_in, --resize_out. "
-             " Not compatible with --resize_up, --resize_down.",
+    resize.add_argument(
+        "--resize",
+        dest="resize",
+        choices=[ims.Resize.UP, ims.Resize.DOWN, ims.Resize.FIRST],
+        type=get_resize_enum,
+        default="first",
+        help="Resizes the images according to the choice. "
+             "down resizes each image to the smallest image. "
+             "up resizes each image to the largest image. "
+             "first resizes each image to the first image seen."
     )
 
     parser.add_argument(
@@ -166,6 +141,7 @@ def parse_arguments():
         default=1,
         help="Number of images or videos placed side by side, horizontally.",
     )
+
     parser.add_argument(
         "--rows",
         dest="rows",
@@ -179,8 +155,17 @@ def parse_arguments():
         dest="fps",
         default=30,
         type=int,
-        help="Frame rate of video. Not compatible if videos are passed in.",
+        help="Frame rate of output video. Not compatible if videos are passed in.",
     )
+
+    parser.add_argument(
+        "--fps_unlock",
+        dest="fps_unlock",
+        action="store_true",
+        help="Removes the requirement for input videos to have matching framerates. "
+             "May cause issues with frames not matching up if framerates do not match."
+    )
+
     parser.add_argument(
         "--max",
         dest="max_imgs",
@@ -188,6 +173,7 @@ def parse_arguments():
         type=int,
         help="Maximum number of images to output (eg. if folder has 1000 images, output only 10.",
     )
+
     parser.add_argument(
         "--read_matching_file_names",
         action="store_true",
@@ -198,40 +184,28 @@ def parse_arguments():
     return validate_arguments(parser_x)
 
 
-def mixed_ext(exts):
+def mixed_ext(exts) -> bool:
     return fo.has_image_exts(exts) and fo.has_video_exts(exts)
 
 
-# Checks if the extensions are equivalent.
-def check_ext(ext1: str, ext2: str):
-    """
-    Checks if the ext1 is equivalent to ext2
-
-    :param ext1:
-    :param ext2:
-    :return:
-    """
-    ext1 = ext1.lower().strip(".")
-    ext2 = ext2.lower().strip(".")
-    return not mixed_ext([ext1, ext2])
-
-
 # Assumes args has resize_up, resize_down, and resize_first
-def get_resize_enum(args) -> ims.Resize:
+def get_resize_enum(s) -> ims.Resize:
     """
     Identifies which option has been selected.
 
-    :param args:
+    :param s:
     :return:
     """
-    if args.resize_up:
-        return ims.Resize.RESIZE_UP
-    elif args.resize_down:
-        return ims.Resize.RESIZE_DOWN
-    elif args.resize_first:
-        return ims.Resize.RESIZE_FIRST
-    else:
-        return ims.Resize.RESIZE_NONE
+    if s == "up":
+        return ims.Resize.UP
+
+    if s == "down":
+        return ims.Resize.DOWN
+
+    if s == "first":
+        return ims.Resize.FIRST
+
+    return ims.Resize.NONE
 
 
 class IsPlural:
@@ -246,11 +220,11 @@ class IsPlural:
 
 class PluralizableString:
     def __init__(
-        self,
-        base_string: str,
-        non_plural_end: str,
-        plural_end: str,
-        pluralizable: IsPlural,
+            self,
+            base_string: str,
+            non_plural_end: str,
+            plural_end: str,
+            pluralizable: IsPlural,
     ):
         self.text: str = base_string + (
             plural_end if pluralizable.is_plural else non_plural_end
@@ -260,94 +234,94 @@ class PluralizableString:
         return self.text
 
 
-def validate_lazy_arguments(parser, args) -> bool:
+def parse_lazy_arguments(args):
     """
     Checks that the arguments for lazy image manipulation are correct.
 
-    :param parser:
     :param args:
     :return:        A boolean indicating whether lazy arguments exist.
     """
-    if args.vstack or args.hstack:
-        missing_files = fo.get_missing_files(args.vstack or args.hstack)
-        if len(missing_files) != 0:
-            pl = IsPlural(missing_files)
-            dir_str = PluralizableString("file", "", "s", pl)
-            do_str = PluralizableString("do", "es", "", pl)
-            parser.error(
-                "The %s specified at %s %s not exist."
-                % (dir_str, ", ".join(missing_files), do_str)
-            )
-        if not args.dest:
-            parser.error("Must specify a destination file with --vstack or --hstack.")
-        return True
-    return False
+    if not (args.vstack or args.hstack):
+        return
+
+    args.files_in = args.vstack or args.hstack
+    args.vstack = bool(args.vstack)
+    args.hstack = bool(args.hstack)
+    args.cols, args.rows = (len(args.files_in), 1) if args.hstack else (1, len(args.files_in))
 
 
-def validate_dirs(parser, args) -> bool:
-    if args.dirs_in:
-        if args.to_imgs and not args.ext_in:
-            parser.error("No extension specified for images.")
-        missing_dirs = fo.get_missing_dirs(args.dirs_in)
-        if len(missing_dirs) != 0:
-            pl = IsPlural(missing_dirs)
-            dir_str = PluralizableString("director", "y", "ies", pl)
-            do_str = PluralizableString("do", "es", "", pl)
-            parser.error(
-                "The %s specified at %s %s not exist."
-                % (dir_str, ", ".join(missing_dirs), do_str)
-            )
-        return True
-    return False
+def validate_dirs(parser, args):
+    if not args.dirs_in:
+        return
+
+    if args.to_imgs and not args.ext_in:
+        parser.error("No extension specified for input images.")
+
+    missing_dirs = fo.get_missing_dirs(args.dirs_in)
+
+    if missing_dirs:
+        pl = IsPlural(missing_dirs)
+        dir_str = PluralizableString("director", "y", "ies", pl)
+        do_str = PluralizableString("do", "es", "", pl)
+        parser.error(
+            "The %s specified at %s %s not exist."
+            % (dir_str, ", ".join(missing_dirs), do_str)
+        )
 
 
-def validate_files(parser, args) -> bool:
-    if args.files_in:
-        if len(args.files_in) < args.cols * args.rows:
-            parser.error(
-                "Not enough photos given to generate an image or video of dimensions %d by %d (requires %d images or "
-                "videos, %d given)"
-                % (args.cols, args.rows, args.cols * args.rows, len(args.files_in))
-            )
+def validate_files(parser, args):
+    if not args.files_in:
+        return
 
-        first_ext = os.path.splitext(args.files_in[0])
-        for path in args.files_in:
-            if not os.path.exists(path):
-                parser.error("File %s not found." % path)
-            if not check_ext(first_ext[1], os.path.splitext(path)[1]):
-                parser.error("Video and image files can not be included.")
+    image_delta = len(args.files_in) - args.cols * args.rows
 
-        missing_files = fo.get_missing_files(args.files_in)
-        if len(missing_files) != 0:
-            file_str = PluralizableString("file", "", "s", IsPlural(missing_files))
-            parser.error(
-                "The %s specified at %s does not exist."
-                % (file_str, ", ".join(missing_files))
-            )
-        return True
-    return False
+    if image_delta < 0:
+        parser.error(
+            "Not enough photos given to generate an image or video stacked %d by %d (requires %d images or "
+            "videos, %d given)"
+            % (args.cols, args.rows, args.cols * args.rows, len(args.files_in))
+        )
+
+    if image_delta > 0:
+        print("Last %d files will not be included in output" % image_delta)
+
+    missing_files = fo.get_missing_files(args.files_in)
+
+    if missing_files:
+        pl = IsPlural(missing_files)
+        dir_str = PluralizableString("file", "", "s", pl)
+        do_str = PluralizableString("do", "es", "", pl)
+        parser.error(
+            "The %s specified at %s %s not exist."
+            % (dir_str, ", ".join(missing_files), do_str)
+        )
 
 
 def validate_extensions(parser, args):
     """
-    Validate that the extensions provided are correct.
+    Validate that the extensions provided are correct and are not mixed.
 
     :param parser:
     :param args:
     :return:
     """
-    if mixed_ext(args.ext_in):
-        parser.error("Must have exclusively image or video extensions.")
+    if args.files_in:
+        args.ext_in = {fo.get_ext(file) for file in args.files_in}
 
-    if has_video_exts(args.ext_in):
+    if mixed_ext(args.ext_in):
+        parser.error("Must have exclusively images or videos as input.")
+
+    if not args.dirs_in:
+        return
+
+    if fo.has_video_exts(args.ext_in):
         if args.to_imgs:
-            parser.error("Can not select --to_imgs and have videos in ext in")
+            parser.error("Can not select --to_imgs and specify videos as input from directories.")
         args.to_vid = True
 
-    if args.to_vid:
-        if args.ext_out not in ["mp4"]:
-            args.ext_out = "mp4"
-            print("Output extension automatically set to %s." % args.ext_in)
+    if args.to_vid and args.ext_out not in {"mp4"}:
+        args.ext_out = "mp4"
+        print("Output extension automatically set to %s." % args.ext_out)
 
 
 def validate_arguments(parser):
@@ -359,16 +333,16 @@ def validate_arguments(parser):
     """
 
     args = parser.parse_args()
+    args.dir_out = args.dir_out or os.path.dirname(args.name)
     args.dir_out = fo.append_forward_slash_path(args.dir_out)
-    args.dirs_in = fo.append_forward_slash_path(args.dirs_in)
+    args.ext_out = args.ext_out or fo.get_ext(args.name)
+    args.name = ".".join(os.path.splitext(os.path.basename(args.name))[:-1])
 
-    if validate_lazy_arguments(parser, args):
-        return args
-
-    if not validate_dirs(parser, args):
-        validate_files(parser, args)
+    parse_lazy_arguments(args)
 
     validate_extensions(parser, args)
+    validate_dirs(parser, args)
+    validate_files(parser, args)
 
     if args.read_matching_file_names:
         if not args.dirs_in:

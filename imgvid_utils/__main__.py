@@ -1,48 +1,42 @@
-def get_correct_dimensions_vstack(args):
-    if args.resize_in:
-        return args.resize_in
-    elif args.resize_out:
-        image_width, image_height = args.resize_out
-        if args.vstack and image_height % len(args.vstack) != 0:
-            raise EnvironmentError(
-                "Output height must be a multiple of image stacking number."
-            )
-        if args.hstack and image_width % len(args.hstack) != 0:
-            raise EnvironmentError(
-                "Output width must be a multiple of image stacking number."
-            )
-        cols = len(args.hstack) if args.hstack else 1
-        rows = len(args.vstack) if args.vstack else 1
-        return image_width // cols, image_height // rows
+def validate_resize_out(cols, rows, dims):
+    width, height = dims
 
-    return ims.get_dimensions_files(
-        args.vstack or args.hstack, args.ext_in, ap.get_resize_enum(args)
-    )
+    if width % cols != 0:
+        raise EnvironmentError(
+            "Output width must be a multiple of image stacking number."
+        )
+
+    if height % rows != 0:
+        raise EnvironmentError(
+            "Output height must be a multiple of image stacking number."
+        )
+
+    return width // cols, height // rows
 
 
 def get_correct_dimensions(args):
     if args.resize_in:
         return args.resize_in
-    elif args.resize_out:
-        image_width, image_height = args.resize_out
-        if image_width % args.cols != 0:
-            raise EnvironmentError(
-                "Output width must be a multiple of image stacking number."
-            )
-        if image_height % args.rows != 0:
-            raise EnvironmentError(
-                "Output height must be a multiple of image stacking number."
-            )
-        return image_width // args.cols, image_height // args.rows
+
+    if args.resize_out:
+        return validate_resize_out(args.cols, args.rows, args.resize_out)
+
+    if args.read_matching_file_names:
+        return None
 
     if args.dirs_in:
         return ims.get_dimensions_dirs(
-            args.dirs_in, args.ext_in, ap.get_resize_enum(args)
+            args.dirs_in, args.ext_in, args.resize
         )
-    else:
-        return ims.get_dimensions_files(
-            args.files_in, args.ext_in, ap.get_resize_enum(args)
+
+    if not args.files_in:
+        raise EnvironmentError(
+            "No files provided."
         )
+
+    return ims.get_dimensions_files(
+        args.files_in, args.ext_in, args.resize
+    )
 
 
 if __name__ == "__main__":
@@ -55,70 +49,37 @@ if __name__ == "__main__":
 
     args = ap.parse_arguments()
 
-    if args.vstack or args.hstack:
-        files = args.vstack or args.hstack
-        if args.vstack:
-            cols = 1
-            rows = len(args.vstack)
-        else:
-            cols = len(args.hstack)
-            rows = 1
-
-        image_width, image_height = get_correct_dimensions_vstack(args)
-        ims.make_image_from_images(
-            files,
-            os.path.dirname(args.dest) or "./",
-            os.path.basename(args.dest),
-            fo.get_ext(args.dest),
-            cols=cols,
-            rows=rows,
-            width=image_width,
-            height=image_height,
-        )
-        exit()
+    input_args = [args.dirs_in, args.ext_in] if args.dirs_in else [args.files_in]
+    output_args = [args.dir_out, args.name, args.ext_out]
+    vargs = {
+        "stacking": ims.Stacking(args.cols, args.rows, "rd"),
+        "size": get_correct_dimensions(args)
+    }
 
     os.makedirs(os.path.dirname(args.dir_out), exist_ok=True)
 
     if args.read_matching_file_names:
-        image_width, image_height = None, None
-        if args.resize_in:
-            image_width, image_height = args.resize_in
-        elif args.resize_out:
-            image_width, image_height = args.resize_out
         ims.make_images_from_folders_match(
             args.dirs_in,
             args.dir_out,
-            args.max_imgs,
-            args.cols,
-            args.rows,
-            ap.get_resize_enum(args),
-            image_width,
-            image_height,
+            **vargs,
+            resize_opt=args.resize,
+            max_imgs=args.max_imgs,
+
         )
         exit()
 
-    image_width, image_height = get_correct_dimensions(args)
-
     print(
         "Output file will have dimensions: %d x %d px."
-        % (image_width * args.cols, image_height * args.rows,)
+        % (vargs["size"][0] * args.cols, vargs["size"][1] * args.rows)
     )
 
     if args.to_vid:
         if args.dirs_in:
-            if ap.has_image_exts(args.ext_in):
-                vs.make_video_from_images(
-                    args.dirs_in,
-                    args.ext_in,
-                    args.dir_out,
-                    args.name,
-                    args.ext_out,
-                    cols=args.cols,
-                    rows=args.rows,
-                    width=image_width,
-                    height=image_height,
-                    fps=args.fps,
-                )
+            if fo.has_image_exts(args.ext_in):
+                if len(args.dirs_in) != args.cols * args.rows:
+                    print("Images will not be drawn from the supplied directories evenly")
+                vs.make_video_from_folders(*input_args, *output_args, **vargs, fps=args.fps)
             else:
                 files_in = fo.get_first_n_files(
                     args.dirs_in, args.ext_in, args.cols * args.rows
@@ -131,51 +92,14 @@ if __name__ == "__main__":
                     "Automatically selected these video files to concatenate: %s"
                     % (", ".join(files_in))
                 )
-                vs.make_video_from_videos(
-                    files_in,
-                    args.dir_out,
-                    args.name,
-                    args.ext_out,
-                    cols=args.cols,
-                    rows=args.rows,
-                    width=image_width,
-                    height=image_height,
-                )
-
-        elif args.files_in:
-            vs.make_video_from_videos(
-                args.files_in,
-                args.dir_out,
-                args.name,
-                args.ext_out,
-                cols=args.cols,
-                rows=args.rows,
-                width=image_width,
-                height=image_height,
-            )
-
+                vs.make_video_from_videos(files_in, *output_args, **vargs)
+        else:
+            vs.make_video_from_videos(*input_args, *output_args, **vargs)
     else:
         if args.files_in:
-            ims.make_image_from_images(
-                args.files_in,
-                args.dir_out,
-                args.name,
-                args.ext_out,
-                cols=args.cols,
-                rows=args.rows,
-                width=image_width,
-                height=image_height,
-            )
+            if args.to_imgs:
+                vs.split_video(*input_args, *output_args, frame_count=args.max_imgs)
+            else:
+                ims.make_image_from_images(*input_args, *output_args, **vargs)
         else:
-            ims.make_images_from_folders(
-                args.dirs_in,
-                args.ext_in,
-                args.dir_out,
-                args.name,
-                ext_out=args.ext_out,
-                max_imgs=args.max_imgs,
-                rows=args.rows,
-                cols=args.cols,
-                width=image_width,
-                height=image_height,
-            )
+            ims.make_images_from_folders(*input_args, *output_args, **vargs, max_imgs=args.max_imgs)

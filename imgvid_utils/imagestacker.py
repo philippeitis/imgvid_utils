@@ -1,6 +1,6 @@
 import cv2
 from enum import Enum
-from typing import Union, List, Iterable, Collection
+from typing import Union, List, Tuple
 import os
 import numpy as np
 
@@ -8,10 +8,26 @@ from . import file_ops as fo
 
 
 class Resize(Enum):
-    RESIZE_UP = 3
-    RESIZE_DOWN = 4
-    RESIZE_FIRST = 5
-    RESIZE_NONE = 0
+    UP = 3
+    DOWN = 4
+    FIRST = 5
+    NONE = 0
+
+    def __str__(self):
+        return self.name.lower()
+
+
+class Stacking:
+    __slots__ = ["cols", "rows", "mode"]
+
+    def __init__(self, cols, rows, mode):
+        self.cols = cols
+        self.rows = rows
+        self.mode = mode
+
+    @classmethod
+    def default(cls):
+        return cls(1, 1, "rd")
 
 
 class ImageDataStore:
@@ -33,90 +49,88 @@ class ImageDataStore:
 
 class ImageGenerator:
     # TODO: allow multiple file extension inputs.
-    def __init__(self, directories, ext="jpg", num=1):
+    def __init__(self, directories, exts=None, num=1):
         """
         Pass in paths to directories containing images, and extension
         of desired image inputs. Will return num images each iteration.
+        May sample unevenly.
 
         :param directories: Input directories.
-        :param ext:         Extension of file to return
+        :param exts:        Extension(s) of file to return
         :param num:         Number of images to return each iteration.
         """
-        self.directories = directories
-        self.ext = ext
+        if isinstance(directories, str):
+            self.directories = [directories]
+        else:
+            if len(directories) == 0:
+                raise ValueError("No directories provided.")
+            self.directories = directories
+
+        if len(directories) % num != 0:
+            raise ValueError("Directories will not be sampled evenly.")
+
+        self.ext = exts or ["jpg"]
         self.num = num
         self.files = {}
-        self._min_files = 0
+        self._max_iters = 0
+        self._max_index = 0
         self.curr_index = 0
         self.active_dir = 0
-        self.index = {}
-        # Checks that all directories are valid.
+
+        self.index = [0] * len(self.directories)
+
         if not fo.check_dirs_exist(self.directories):
             raise ValueError("One or more directories do not exist.")
 
-        self.load_dirs()
+        self._load_dirs()
 
     @property
-    def min_files(self):
-        return self._min_files
+    def max_iters(self):
+        return self._max_iters
 
-    @min_files.setter
-    def min_files(self, min_files: Union[None, int]):
+    @max_iters.setter
+    def max_iters(self, max_iters: Union[None, int]):
         """
         Sets the number of files that this iterator will output:
-        If min_files <= 0, nothing will be returned. If min_files >= self.min_files, self.min_files remains unchanged.
-        Otherwise, self.min_files = min_files
+        If max_iters <= 0, nothing will be returned. If max_iters >= self.max_iters, self.max_iters remains unchanged.
+        Otherwise, self.max_iters = max_iters
 
-        :param min_files:
+        :param max_iters:   The maximum number of iterations that should occur.
         :return:
         """
-        if min_files is not None:
-            if min_files < 0:
-                self._min_files = 0
-            elif min_files <= self._min_files:
-                self._min_files = min_files
+        if max_iters is not None:
+            if max_iters < 0:
+                self._max_iters = 0
+            elif max_iters <= self._max_iters:
+                self._max_iters = max_iters
 
-    # Loads all image paths into memory.
-    def load_dirs(self):
-        if isinstance(self.directories, str):
-            self.files[0] = fo.get_files(self.directories, self.ext)
-            self.index[0] = 0
-            self._min_files = len(self.files[0]) - len(self.files[0]) % self.num
-            if self._min_files == 0:
+    def _load_dir(self, counter):
+        files = fo.get_files(self.directories[counter], self.ext)
+        self.files[counter] = files
+        self.index[counter] = 0
+        len_files = len(files)
+        candidate_iters = len_files - len_files % self.num
+        if self._max_iters == 0:
+            self._max_iters = candidate_iters
+        elif self._max_iters > candidate_iters:
+            self._max_iters = candidate_iters
+
+    def _load_dirs(self):
+        for counter in range(len(self.directories)):
+            self._load_dir(counter)
+            if self._max_iters == 0:
                 raise ValueError(
-                    "No images matching %s found in directories %s."
-                    % (", ".join(self.ext), ", ".join(self.directories))
+                    "Insufficiently many images found matching ext %s in directories %s."
+                    % (", ".join(self.ext), ", ".join(self.directories[counter]))
                 )
-
-        else:
-            counter = 0
-            for directory in self.directories:
-                files = fo.get_files(self.directories[counter], self.ext)
-                if self._min_files == 0:
-                    self._min_files = len(files)
-                elif self._min_files > len(files):
-                    self._min_files = len(files)
-                if self._min_files == 0:
-                    print("No files found in " + directory)
-                else:
-                    self.files[counter] = files
-                    self.index[counter] = 0
-                    counter += 1
-
-            if self._min_files == 0:
-                raise ValueError(
-                    "No images matching %s found in directories %s."
-                    % (", ".join(self.ext), ", ".join(self.directories))
-                )
-            self._min_files = len(self.files[0]) - len(self.files[0]) % self.num
+        self._max_index = self._max_iters * len(self.files)
 
     def __iter__(self):
         return self
 
-    # Returns num images in array.
     def __next__(self):
         """ Returns num images in an array. """
-        if self.curr_index < self._min_files * len(self.files.keys()):
+        if self.curr_index < self._max_index:
             output = []
             for i in range(self.num):
                 output.append(
@@ -125,7 +139,7 @@ class ImageGenerator:
                 self.index[self.active_dir] += 1
                 self.curr_index += 1
                 self.active_dir += 1
-                self.active_dir %= len(self.files.keys())
+                self.active_dir %= len(self.files)
 
             return ImageDataStore(output, None, None)
         else:
@@ -134,101 +148,109 @@ class ImageGenerator:
 
 class ImageGeneratorMatchToName:
     # TODO: allow multiple file extension inputs.
-    def __init__(self, directories, max_imgs=None):
+    def __init__(self, directories, max_iters=None, exts=None):
         """
 
         :param directories: Directories from which to draw images.
         """
-        self.directories = directories
-        self.files = {}
-        self.num_imgs = 0
+
+        if isinstance(directories, str):
+            self.directories = [directories]
+        else:
+            if len(directories) == 0:
+                raise ValueError("No directories provided.")
+            self.directories = directories
+
+        self.file_location_in_dir = {}
+
         self.curr_index = 0
-        self.possible_file_names_arr = []
-        # Checks that all directories are valid.
+        self.candidates = []
+        self._max_iters = 0
+
+        self.exts = exts or ["jpg", "png"]
+
         if fo.check_dirs_exist(self.directories):
-            self.load_dirs()
-            self.min_files = max_imgs
+            self._load_dirs()
+            self.max_iters = max_iters
         else:
             raise ValueError("One or more directories do not exist.")
 
     @property
-    def min_files(self):
-        return self.num_imgs
+    def max_iters(self):
+        return self._max_iters
 
-    @min_files.setter
-    def min_files(self, min_files: Union[None, int]):
-        if min_files is not None:
-            if min_files < 0:
-                self.num_imgs = 0
-            elif min_files < self.num_imgs:
-                self.num_imgs = min_files
+    @max_iters.setter
+    def max_iters(self, max_iters: Union[None, int]):
+        if max_iters is not None:
+            if max_iters < 0:
+                self._max_iters = 0
+            elif max_iters < self._max_iters:
+                self._max_iters = max_iters
 
-    def load_dirs(self):
+    def _load_dir(self, counter):
+        directory = self.directories[counter]
+        files = fo.get_files(directory, self.exts)
+
+        if not files:
+            raise ValueError(f"No files found in {directory}")
+
+        self.file_location_in_dir[counter] = {
+            os.path.basename(f_name): f_name for f_name in files
+        }
+
+        return self.file_location_in_dir[counter].keys()
+
+    def _load_dirs(self):
         """ Finds and stores all file names which exist across all directories. """
         possible_file_names = set()
-        if isinstance(self.directories, str):
-            self.files[0] = {
-                os.path.basename(f_name): f_name
-                for f_name in fo.get_files(self.directories, ["jpg", "png"])
-            }
-            possible_file_names = set(self.files[0].keys())
-        else:
-            for counter, directory in enumerate(self.directories):
-                files = fo.get_files(self.directories[counter], ["jpg", "png"])
-                if not files:
-                    raise ValueError(f"No files found in {directory}")
+        for counter in range(len(self.directories)):
+            if counter == 0:
+                possible_file_names = set(self._load_dir(counter))
+            else:
+                possible_file_names &= set(self._load_dir(counter))
 
-                self.files[counter] = {
-                    os.path.basename(f_name): f_name for f_name in files
-                }
-                if counter == 0:
-                    possible_file_names = set(self.files[counter].keys())
-                else:
-                    possible_file_names &= set(self.files[counter].keys())
-
-        self.possible_file_names_arr = sorted(list(possible_file_names))
-        self.num_imgs = len(self.possible_file_names_arr)
-
-        if self.num_imgs == 0:
+        if not possible_file_names:
             raise ValueError("No file names in common.")
+
+        self.candidates = sorted(list(possible_file_names))
+        self._max_iters = len(self.candidates)
 
     def __iter__(self):
         """ Returns all instances of images with matching file names, in alphabetical order. """
         return self
 
     def __next__(self):
-        if self.curr_index < self.num_imgs:
+        if self.curr_index < self._max_iters:
             output = []
-            file_name = self.possible_file_names_arr[self.curr_index]
-
-            for file_dict in self.files.values():
+            file_name = self.candidates[self.curr_index]
+            for file_dict in self.file_location_in_dir.values():
+                # TODO: Handle special file name errors
                 output.append(cv2.imread(file_dict[file_name]))
             self.curr_index += 1
-
-            return ImageDataStore(
-                output, os.path.splitext(file_name)[0], os.path.splitext(file_name)[-1]
-            )
+            base, *_, ext = os.path.splitext(file_name)
+            return ImageDataStore(output, base, ext)
         else:
             raise StopIteration()
 
 
-def stack_images(images, dimensions, mode="rd"):
+def stack_images(images, stacking: Stacking):
     """
     Expects an array of images a tuple (x,y) that represents how the images will be stacked, and a mode representing
     how the array will be stacked:
 
     eg. images = [img]*6, dimensions = (2,3), mode='rd':
     2 images per row, 3 rows, ordered from left to right, up to down
-    :param images:
-    :param dimensions:
-    :param mode:
+    :param images:       A set of opened images.
+    :param stacking:     A Stacking object, which defines how the images should be stacked.
     :return:
     """
-    x = dimensions[0]
-    y = dimensions[1]
+    x, y = stacking.cols, stacking.rows
+    mode = stacking.mode
+
     images_stacked = [None] * y
     for i in range(y):
         images_stacked[i] = [None] * x
+    # TODO: Excessive quantities of magic occurring here
     if mode[0] in ("l", "r"):
         for i in range(x * y):
             images_stacked[i // x if mode[1] == "d" else y - i // x - 1][
@@ -247,13 +269,11 @@ def stack_images(images, dimensions, mode="rd"):
 def resize_images(images, dimensions: (int, int)):
     """
     Resizes all of the images to the specified dimensions.
-    :param images:
-    :param dimensions:
+    :param images:          A set of opened images.
+    :param dimensions:      The dimensions to resize the images to.
     :return:
     """
-    for i in range(len(images)):
-        images[i] = cv2.resize(images[i], dimensions)
-    return images
+    return [cv2.resize(img, dimensions) for img in images]
 
 
 def make_image_from_images(
@@ -261,14 +281,24 @@ def make_image_from_images(
     dir_out="./",
     file_name="output",
     ext_out="jpg",
-    cols: int = 1,
-    rows: int = 1,
-    width: int = 640,
-    height: int = 480,
-    mode: str = "rd",
+    stacking: Stacking = None,
+    size: Tuple[int, int] = (640, 480),
 ):
+    """
+
+    :param files_in:    List of files to read and place into the image.
+    :param dir_out:     The directory to output the file(s) to. If it does not exist, it will be created.
+    :param file_name:   The initial portion of the filename common to each file.
+    :param ext_out:     Output extension for the images.
+    :param stacking:    A Stacking object, which defines how the component images should be stacked.
+    :param size:        Dimensions of each component image in px.
+    :return:
+    """
     file_name = fo.form_file_name(dir_out, file_name, ext_out)
     os.makedirs(os.path.dirname(file_name), exist_ok=True)
+
+    stacking = stacking or Stacking.default()
+
     if isinstance(files_in, str):
         cv2.imwrite(file_name, cv2.imread(files_in))
     elif len(files_in) == 1:
@@ -280,7 +310,7 @@ def make_image_from_images(
         cv2.imwrite(
             file_name,
             stack_images(
-                resize_images(images, (width, height)), (cols, rows), mode=mode
+                resize_images(images, size), stacking
             ),
         )
 
@@ -289,29 +319,39 @@ def make_images_from_folders_match(
     dirs_in,
     dir_out,
     max_imgs=None,
-    cols=1,
-    rows=1,
-    resize_opt: Resize = Resize.RESIZE_FIRST,
-    width=None,
-    height=None,
-    mode="rd",
+    resize_opt: Resize = Resize.FIRST,
+    stacking: Stacking = None,
+    size: Tuple[int, int] = None,
 ):
+    """
+
+    :param dirs_in:         List of directories with files to read and place into the images.
+    :param dir_out:         directory to output the file(s) to. If it does not exist, it will be created automatically.
+    :param max_imgs:        The maximum number of images that should be created.
+    :param resize_opt:      How each set of images should be resized.
+    :param stacking:        A Stacking object, which defines how the component images should be stacked.
+    :param size:            Dimensions of each component image in px.
+    :return:
+    """
     os.makedirs(dir_out, exist_ok=True)
+
     image_iter = ImageGeneratorMatchToName(dirs_in, max_imgs)
 
-    if resize_opt == Resize.RESIZE_UP:
+    stacking = stacking or Stacking.default()
+
+    if resize_opt == Resize.UP:
         fn = return_max
-    elif resize_opt == Resize.RESIZE_DOWN:
+    elif resize_opt == Resize.DOWN:
         fn = return_min
     else:
         fn = return_first
 
-    if width is None or height is None:
+    if size is None:
         def dims(images):
             return fn([(image.shape[1], image.shape[0]) for image in images])
     else:
-        def dims(images):
-            return width, height
+        def dims(_):
+            return size
 
     for image_data in image_iter:
         images = image_data.images
@@ -319,12 +359,11 @@ def make_images_from_folders_match(
         cv2.imwrite(
             file_name,
             stack_images(
-                resize_images(images, dims(images)), (cols, rows), mode=mode
+                resize_images(images, dims(images)), stacking
             ),
         )
 
-#
-#
+
 def make_images_from_folders(
     dirs_in: Union[List[str], str],
     ext_in: Union[List[str], str] = "jpg",
@@ -332,241 +371,124 @@ def make_images_from_folders(
     file_name: str = "output",
     ext_out="jpg",
     max_imgs: int = None,
-    cols: int = 1,
-    rows: int = 1,
-    width: int = 640,
-    height: int = 480,
-    mode="rd",
+    stacking: Stacking = None,
+    size: Tuple[int, int] = (640, 480),
 ):
     """
-    Draws images with the given extension equally from each folder, resizes each
+    Draws images with the given extension(s) equally from each folder, resizes each
      individual image to width x height, concatenates them according to the mode, and saves them to dir_out.
-    :param dirs_in:
-    :param ext_in:
-    :param dir_out:
-    :param file_name:
-    :param ext_out:
-    :param max_imgs:
-    :param cols:
-    :param rows:
-    :param width:
-    :param height:
-    :param mode:
+    :param dirs_in:         List of directories with files to read and place into the images.
+    :param ext_in:          choose files in the directory with the given extension(s).
+    :param dir_out:         directory to output the file(s) to. If it does not exist, it will be created automatically.
+    :param file_name:       The initial portion of the filename common to each file.
+    :param ext_out:         output extension for the images
+    :param max_imgs:        Maximum number of output images.
+    :param stacking:        A Stacking object, which defines how the component images should be stacked.
+    :param size:            Dimensions of each component image in px.
     :return:
     """
-    image_iter = ImageGenerator(dirs_in, ext=ext_in, num=cols * rows)
-    os.makedirs(dir_out, exist_ok=True)
+    stacking = stacking or Stacking.default()
 
-    image_iter._min_files = max_imgs
-    num_zeros = len(str(image_iter._min_files // image_iter.num - 1))
+    image_iter = ImageGenerator(dirs_in, exts=ext_in, num=stacking.cols * stacking.rows)
+    image_iter.max_iters = image_iter.max_iters // (max_imgs if max_imgs else 1)
+
+    os.makedirs(dir_out, exist_ok=True)
+    num_zeros = len(str(image_iter.max_iters - 1))
+
+    stacking = stacking or Stacking.default()
+
     for counter, image_data in enumerate(image_iter):
         temp_file_name = fo.form_file_name(
             dir_out, file_name + str(counter).zfill(num_zeros), ext_out
         )
+
         cv2.imwrite(
             temp_file_name,
             stack_images(
-                resize_images(image_data.images, (width, height)),
-                (cols, rows),
-                mode=mode,
+                resize_images(image_data.images, size),
+                stacking,
             ),
         )
+
+
+def get_dimensions_files(
+    files_in: Union[List[str], str],
+    exts: Union[List[str], str],
+    resize: Resize
+):
+    """
+    Returns the appropriate dimensions given resize.
+    :param files_in:    One or more files with dimensions of interest
+    :param exts:        The file extension(s).
+    :param resize:      A Resize enum.
+    :return:
+    """
+    if isinstance(files_in, str):
+        files_in = [files_in]
+
+    if len(files_in) == 0:
+        raise ValueError("get_dimensions_files requires at least one file.")
+
+    if resize == Resize.FIRST:
+        lmbda = return_first
+    elif resize == Resize.UP:
+        lmbda = return_max
+    elif resize == Resize.DOWN:
+        lmbda = return_min
+    else:
+        lmbda = return_first
+
+    if not fo.has_video_exts(exts):
+        return lmbda(get_img_dimensions(files_in))
+    else:
+        return lmbda(get_video_dimensions(files_in))
 
 
 def get_dimensions_dirs(dirs_in: Union[List[str], str], ext: str, resize: Resize):
     """
     Returns the appropriate dimensions given resize.
-    :param dirs_in:
-    :param ext:
-    :param resize:
+    :param dirs_in:     One or more directories with files of interest
+    :param ext:         The file extension(s).
+    :param resize:      A Resize enum.
     :return:
     """
-    if resize == Resize.RESIZE_FIRST:
-        return get_first_dimensions_dirs(dirs_in, ext)
-    if resize == Resize.RESIZE_UP:
-        return get_max_dimensions_dirs(dirs_in, ext)
-    if resize == Resize.RESIZE_DOWN:
-        return get_min_dimensions_dirs(dirs_in, ext)
-    else:
-        return get_first_dimensions_dirs(dirs_in, ext)
-
-
-def get_dimensions_files(files_in: Union[List[str], str], ext: str, resize: Resize):
-    if resize == Resize.RESIZE_FIRST:
-        return get_first_dimensions_files(files_in, ext)
-    if resize == Resize.RESIZE_UP:
-        return get_max_dimensions_files(files_in, ext)
-    if resize == Resize.RESIZE_DOWN:
-        return get_min_dimensions_files(files_in, ext)
-    else:
-        return get_first_dimensions_files(files_in, ext)
-
-
-def get_first_dimensions_dirs(
-    dirs_in: Union[List[str], str], ext_in: Union[List[str], str]
-):
-    """
-    Returns the dimensions of the first valid file found with any extension in ext_in. Order
-    :param dirs_in:
-    :param ext_in:
-    :return:
-    """
+    if isinstance(dirs_in, str):
+        return get_dimensions_files(fo.get_files(dirs_in, ext), ext, resize)
 
     if len(dirs_in) == 0:
         raise ValueError("Insufficient directories.")
 
-    if isinstance(dirs_in, str):
-        return get_first_dimensions_files(fo.get_files(dirs_in, ext_in), ext_in)
+    if resize == Resize.FIRST:
+        lmbda = return_first
+    elif resize == Resize.UP:
+        lmbda = return_max
+    elif resize == Resize.DOWN:
+        lmbda = return_min
     else:
-        for dir_in in dirs_in:
-            try:
-                return get_first_dimensions_files(fo.get_files(dir_in, ext_in), ext_in)
-            except ValueError:
-                continue
-        if isinstance(ext_in, str):
-            ext_in = [ext_in]
+        lmbda = return_first
+
+    dims = []
+    for dir_in in dirs_in:
+        try:
+            dims.append(
+                get_dimensions_files(fo.get_files(dir_in, ext), ext, resize)
+            )
+            if lmbda == return_first:
+                return_first(dims)
+        except ValueError:
+            continue
+    try:
+        return lmbda(dims)
+    except ValueError:
+        if isinstance(ext, str):
+            ext = [ext]
         raise ValueError(
-            "No files with given extension %s found in any directory."
-            % (", ".join(ext_in),)
+            "No files with given extension(s) %s found in any directory."
+            % (", ".join(ext),)
         )
 
 
-def get_min_dimensions_dirs(
-    dirs_in: Union[List[str], str], ext_in: Union[List[str], str]
-):
-    """
-    Returns the minimum dimensions of any file matching the specified extensions across all
-    directories in dirs_in.
-    :param dirs_in:
-    :param ext_in:
-    :return:
-    """
-
-    if len(dirs_in) == 0:
-        raise ValueError("Insufficient directories.")
-
-    if isinstance(dirs_in, str):
-        return get_min_dimensions_files(fo.get_files(dirs_in, ext_in), ext_in)
-    else:
-        dims = []
-        for dir_in in dirs_in:
-            try:
-                dims.append(
-                    get_min_dimensions_files(fo.get_files(dir_in, ext_in), ext_in)
-                )
-            except ValueError:
-                continue
-        try:
-            return return_min(dims)
-        except ValueError:
-            raise ValueError(
-                "No files with given extension %s found in any directory." % (ext_in,)
-            )
-
-
-def get_max_dimensions_dirs(
-    dirs_in: Union[List[str], str], ext_in: Union[List[str], str]
-):
-    """
-    Returns the maximum dimensions of any file matching the specified extensions across all
-    directories in dirs_in.
-    :param dirs_in:
-    :param ext_in:
-    :return:
-    """
-
-    if len(dirs_in) == 0:
-        raise ValueError("Insufficient directories.")
-
-    if isinstance(dirs_in, str):
-        return get_max_dimensions_files(fo.get_files(dirs_in, ext_in), ext_in)
-    else:
-        dims = []
-        for dir_in in dirs_in:
-            try:
-                dims.append(
-                    get_max_dimensions_files(fo.get_files(dir_in, ext_in), ext_in)
-                )
-            except ValueError:
-                continue
-        try:
-            return return_max(dims)
-        except ValueError:
-            if isinstance(ext_in, str):
-                ext_str = ext_in
-            else:
-                ext_str = ", ".join(ext_in)
-
-            raise ValueError(
-                f"No files with extension(s) ({ext_str}) found in any directory."
-            )
-
-
-def get_first_dimensions_files(
-    files_in: Union[Iterable[str], str], ext_in: Union[Collection[str], str]
-):
-    """
-    Will get the dimensions of the first file in files_in
-
-    :param files_in:
-    :param ext_in:
-    :return:
-    """
-    if isinstance(files_in, str):
-        files_in = [files_in]
-
-    if len(files_in) == 0:
-        raise ValueError("get_first_dimensions_files requires at least one file.")
-
-    if not fo.has_video_exts(ext_in):
-        return return_first(get_img_dimensions(files_in))
-    else:
-        return return_first(get_video_dimensions(files_in))
-
-
-def get_min_dimensions_files(
-    files_in: Union[List[str], str], ext_in: Union[List[str], str]
-):
-    """
-    Gets the smallest dimensions of the input files.
-    :param files_in:
-    :param ext_in:
-    :return:
-    """
-    if isinstance(files_in, str):
-        files_in = [files_in]
-
-    if len(files_in) == 0:
-        raise ValueError("get_min_dimensions_files requires at least one file.")
-
-    if not fo.has_video_exts(ext_in):
-        return return_min(get_img_dimensions(files_in))
-    else:
-        return return_min(get_video_dimensions(files_in))
-
-
-def get_max_dimensions_files(
-    files_in: Union[List[str], str], ext_in: Union[List[str], str]
-):
-    """
-    Gets the minimum and maximum dimensions of the files in the list with the given extension(s).
-    :param files_in:    A list of input files for which to get dimensions for.
-    :param ext_in:      The format of the files (eg. mp4, jpeg, png)
-    :return:
-    """
-    if isinstance(files_in, str):
-        files_in = [files_in]
-
-    if len(files_in) == 0:
-        raise ValueError("get_max_dimensions_files requires at least one file.")
-
-    if not fo.has_video_exts(ext_in):
-        return return_max(get_img_dimensions(files_in))
-    else:
-        return return_max(get_video_dimensions(files_in))
-
-
-def get_img_dimensions(imgs_in: Union[List[str], str]):
+def get_img_dimensions(imgs_in: List[str]):
     """
     Given a list of file paths, returns the dimensions of the images corresponding to the file paths
     :param imgs_in:     List of file paths corresponding to image files.
@@ -580,7 +502,7 @@ def get_img_dimensions(imgs_in: Union[List[str], str]):
     return dims_list
 
 
-def get_video_dimensions(videos_in: Union[List[str], str]):
+def get_video_dimensions(videos_in: List[str]):
     """
     Given a list of file paths, returns the dimensions of the videos corresponding to the file paths.
 
@@ -588,6 +510,7 @@ def get_video_dimensions(videos_in: Union[List[str], str]):
     :return:            List of corresponding file dimensions.
     """
     dims_list = []
+
     for vid in videos_in:
         file = cv2.VideoCapture(vid)
         dims_list.append(
