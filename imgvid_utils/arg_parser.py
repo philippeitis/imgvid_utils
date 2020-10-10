@@ -119,6 +119,7 @@ def parse_arguments():
         help="Sets the dimensions of the input image. "
              "Not compatible with -resize_out or -resize_down or -resize_up",
     )
+
     resize.add_argument(
         "--resize_out",
         dest="resize_out",
@@ -147,6 +148,7 @@ def parse_arguments():
         default=1,
         help="Number of images or videos placed side by side, horizontally.",
     )
+
     parser.add_argument(
         "--rows",
         dest="rows",
@@ -162,6 +164,7 @@ def parse_arguments():
         type=int,
         help="Frame rate of video. Not compatible if videos are passed in.",
     )
+
     parser.add_argument(
         "--max",
         dest="max_imgs",
@@ -169,6 +172,7 @@ def parse_arguments():
         type=int,
         help="Maximum number of images to output (eg. if folder has 1000 images, output only 10.",
     )
+
     parser.add_argument(
         "--read_matching_file_names",
         action="store_true",

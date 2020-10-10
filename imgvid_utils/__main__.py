@@ -39,14 +39,6 @@ def get_correct_dimensions(args):
     )
 
 
-def generate_stacking(args):
-    if args.vstack:
-        return ims.Stacking(1, len(args.vstack), "rd")
-    elif args.hstack:
-        return ims.Stacking(len(args.hstack), 1, "rd")
-    return ims.Stacking(args.cols, args.rows, "rd")
-
-
 if __name__ == "__main__":
     from . import arg_parser as ap
     from . import videostacker as vs
@@ -60,17 +52,9 @@ if __name__ == "__main__":
     input_args = [args.dirs_in, args.ext_in] if args.dirs_in else [args.files_in]
     output_args = [args.dir_out, args.name, args.ext_out]
     vargs = {
-        "stacking": generate_stacking(args),
+        "stacking": ims.Stacking(args.cols, args.rows, "rd"),
         "size": get_correct_dimensions(args)
     }
-
-    if args.vstack or args.hstack:
-        ims.make_image_from_images(
-            *input_args,
-            *output_args,
-            **vargs,
-        )
-        exit()
 
     os.makedirs(os.path.dirname(args.dir_out), exist_ok=True)
 
@@ -95,7 +79,7 @@ if __name__ == "__main__":
             if fo.has_image_exts(args.ext_in):
                 if len(args.dirs_in) != args.cols * args.rows:
                     print("Images will not be drawn from the supplied directories evenly")
-                vs.make_video_from_images(*input_args, *output_args, **vargs, fps=args.fps)
+                vs.make_video_from_folders(*input_args, *output_args, **vargs, fps=args.fps)
             else:
                 files_in = fo.get_first_n_files(
                     args.dirs_in, args.ext_in, args.cols * args.rows

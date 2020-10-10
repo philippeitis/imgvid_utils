@@ -94,8 +94,9 @@ class VideoIterator:
 # input_paths, [input file types], output_path, [output file types], [num_imgs]
 #  cols, rows, [dimension altering], width, height, mode
 
+
 # TODO: add support for more video formats
-def make_video_from_images(
+def make_video_from_folders(
     dirs_in,
     ext_in="jpg",
     dir_out="./",
@@ -158,7 +159,7 @@ def make_video_from_images(
     vid.release()
 
 
-def make_video_from_array(
+def make_video_from_images(
     files_in,
     dir_out="./",
     file_name="output",
