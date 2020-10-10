@@ -13,7 +13,7 @@ def get_video_dims(video) -> Tuple[int, int]:
 
 
 class VideoIterator:
-    def __init__(self, paths_to_videos, num=1):
+    def __init__(self, paths_to_videos, num=1, frame_lock=True):
         """
         Initializes a video iterator that will return num frames per iteration from each video in paths_to_videos.
 
@@ -35,6 +35,7 @@ class VideoIterator:
         self.fps = 0
         self.dims = None
         self.num_frames = 0
+        self.frame_lock = frame_lock
         self._load_videos()
 
     def _set_dims(self):
@@ -50,11 +51,13 @@ class VideoIterator:
         self.last_frame[counter] = None
         self.videos[counter] = cv2.VideoCapture(video)
         self.videos_completed[counter] = False
-        if self.fps != 0:
-            if self.fps != self.videos[counter].get(cv2.CAP_PROP_FPS):
-                raise ValueError("Video FPS does not match.")
-        else:
-            self.fps = self.videos[counter].get(cv2.CAP_PROP_FPS)
+        if self.frame_lock:
+            if self.fps != 0:
+                if self.fps != self.videos[counter].get(cv2.CAP_PROP_FPS):
+                    raise ValueError("Video FPS does not match.")
+            else:
+                self.fps = self.videos[counter].get(cv2.CAP_PROP_FPS)
+
         self.num_frames = max(
             self.num_frames, int(self.videos[0].get(cv2.CAP_PROP_FRAME_COUNT))
         )
@@ -219,6 +222,7 @@ def make_video_from_videos(
     video_format: str = "mp4v",
     stacking: Stacking = None,
     size: Tuple[int, int] = None,
+    fps_lock: bool = True,
 ) -> None:
     """
     Creates, and saves a video with the file_name, encoded using video_format containing each video in files_in,
@@ -231,6 +235,7 @@ def make_video_from_videos(
     :param video_format:    format to encode the video in (default mp4v)
     :param stacking:        A Stacking object, which defines how the component images should be stacked.
     :param size:            Dimensions of each component image in px.
+    :param fps_lock:        Require all source videos to have the same frame rate.
     :return:                nothing
     """
 
@@ -241,7 +246,7 @@ def make_video_from_videos(
     stacking = stacking or Stacking.default()
 
     video_format = cv2.VideoWriter_fourcc(*video_format)
-    video_iter = VideoIterator(files_in, stacking.cols * stacking.rows)
+    video_iter = VideoIterator(files_in, stacking.cols * stacking.rows, fps_lock)
 
     (width, height) = size or video_iter.dims
 

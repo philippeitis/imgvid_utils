@@ -125,7 +125,7 @@ def parse_arguments():
     resize.add_argument(
         "--resize",
         dest="resize",
-        choices=[val for val in ims.Resize],
+        choices=[ims.Resize.UP, ims.Resize.DOWN, ims.Resize.FIRST],
         type=get_resize_enum,
         default="first",
         help="Resizes the images according to the choice. "
@@ -155,7 +155,15 @@ def parse_arguments():
         dest="fps",
         default=30,
         type=int,
-        help="Frame rate of video. Not compatible if videos are passed in.",
+        help="Frame rate of output video. Not compatible if videos are passed in.",
+    )
+
+    parser.add_argument(
+        "--fps_unlock",
+        dest="fps_unlock",
+        action="store_true",
+        help="Removes the requirement for input videos to have matching framerates. "
+             "May cause issues with frames not matching up if framerates do not match."
     )
 
     parser.add_argument(
