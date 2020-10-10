@@ -190,9 +190,9 @@ def clear_files(folder: str, *argv) -> None:
 def form_file_name(dir_out: str, file_name: str, ext: str) -> str:
     """
     Removes excess extensions in the file_name and returns a fully formed file name, cleaned of excess extensions.
-    :param dir_out: path to a directory.
-    :param file_name:  a file name with zero or more extensions.
-    :param ext: the extension the file name should end in.
+    :param dir_out:     path to a directory.
+    :param file_name:   A file name with zero or more extensions.
+    :param ext:         the file extension
     :return:
     """
     # Needs to check that file_name doesn't contain an extension.

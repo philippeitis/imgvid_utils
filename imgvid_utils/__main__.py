@@ -84,32 +84,27 @@ if __name__ == "__main__":
             args.dirs_in,
             args.dir_out,
             args.max_imgs,
-            stacking,
-            args.resize,
-            size,
+            resize_opt=args.resize,
+            stacking=stacking,
+            size=size,
         )
         exit()
 
     print(
         "Output file will have dimensions: %d x %d px."
-        % (size[0] * args.cols, size[1] * args.rows,)
+        % (size[0] * args.cols, size[1] * args.rows)
     )
+
+    input_args = [args.dirs_in, args.ext_in] if args.dirs_in else [args.files_in]
+    output_args = [args.dir_out, args.name, args.ext_out]
+    vargs = {"stacking": stacking, "size": size}
 
     if args.to_vid:
         if args.dirs_in:
             if fo.has_image_exts(args.ext_in):
                 if len(args.dirs_in) != args.cols * args.rows:
                     print("Images will not be drawn from the supplied directories evenly")
-                vs.make_video_from_images(
-                    args.dirs_in,
-                    args.ext_in,
-                    args.dir_out,
-                    args.name,
-                    ext_out=args.ext_out,
-                    stacking=stacking,
-                    size=size,
-                    fps=args.fps,
-                )
+                vs.make_video_from_images(*input_args, *output_args, **vargs, fps=args.fps)
             else:
                 files_in = fo.get_first_n_files(
                     args.dirs_in, args.ext_in, args.cols * args.rows
@@ -122,43 +117,11 @@ if __name__ == "__main__":
                     "Automatically selected these video files to concatenate: %s"
                     % (", ".join(files_in))
                 )
-                vs.make_video_from_videos(
-                    files_in,
-                    args.dir_out,
-                    args.name,
-                    args.ext_out,
-                    stacking=stacking,
-                    size=size,
-                )
-
-        elif args.files_in:
-            vs.make_video_from_videos(
-                args.files_in,
-                args.dir_out,
-                args.name,
-                args.ext_out,
-                stacking=stacking,
-                size=size,
-            )
-
+                vs.make_video_from_videos(files_in, *output_args, **vargs)
+        else:
+            vs.make_video_from_videos(*input_args, *output_args, **vargs)
     else:
         if args.files_in:
-            ims.make_image_from_images(
-                args.files_in,
-                args.dir_out,
-                args.name,
-                args.ext_out,
-                stacking=stacking,
-                size=size,
-            )
+            ims.make_image_from_images(*input_args, *output_args, **vargs)
         else:
-            ims.make_images_from_folders(
-                args.dirs_in,
-                args.ext_in,
-                args.dir_out,
-                args.name,
-                ext_out=args.ext_out,
-                max_imgs=args.max_imgs,
-                stacking=stacking,
-                size=size,
-            )
+            ims.make_images_from_folders(*input_args, *output_args, **vargs, max_imgs=args.max_imgs)

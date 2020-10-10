@@ -17,8 +17,8 @@ class VideoIterator:
         """
         Initializes a video iterator that will return num frames per iteration from each video in paths_to_videos.
 
-        :param paths_to_videos:
-        :param num:
+        :param paths_to_videos:     The file paths to the videos to read
+        :param num:                 The number of frames to return each iteration.
         """
         if not fo.check_files_exist(paths_to_videos):
             raise ValueError("One or more videos not found.")
@@ -118,14 +118,14 @@ def make_video_from_images(
             c[i] d[i]
     where x[i] refers to the ith file in that directory
 
-    :param dirs_in:         List of files to read and place into the video.
+    :param dirs_in:         List of directories with files to read and place into the videos.
     :param ext_in:          choose files in the directory with the given extension(s).
     :param dir_out:         directory to output the file to. If it does not exist, it will be created automatically.
     :param file_name:       name of output video
     :param ext_out:         output extension for the video (default mp4)
     :param video_format:    format to encode the video in (default mp4v)
-    :param fps:             desired fps of output video.
-    :param stacking:
+    :param fps:             fps of output video.
+    :param stacking:        A Stacking object, which defines how the component images should be stacked.
     :param size:            Dimensions of each component image in px.
     :return:                nothing
     """
@@ -228,8 +228,8 @@ def make_video_from_videos(
     :param file_name:       Name of output video
     :param ext_out:         output extension for the video (default mp4)
     :param video_format:    format to encode the video in (default mp4v)
-    :param stacking:
-    :param size:         Dimensions of each component image in px.
+    :param stacking:        A Stacking object, which defines how the component images should be stacked.
+    :param size:            Dimensions of each component image in px.
     :return:                nothing
     """
 
@@ -275,8 +275,8 @@ def split_video(
     starting at start_frame and going to end_frame. Outputs frame_count stills if end_frame is not specified.
 
     :param file_in:         List of files to read and place into the video.
-    :param dir_out:         directory to output the file to. If it does not exist, it will be created automatically.
-    :param file_name:       first part of output file names.
+    :param dir_out:         directory to output the file(s) to. If it does not exist, it will be created automatically.
+    :param file_name:       The initial portion of the filename common to each file.
     :param ext_out:         output extension for the stills
     :param frame_count:     number of frames to save, starting at start frame. Overrides end_frame. (default -1, or all)
     :param start_frame:     first frame of video to save (default 0, beginning of video)

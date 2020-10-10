@@ -95,7 +95,7 @@ class ImageGenerator:
         If max_iters <= 0, nothing will be returned. If max_iters >= self.max_iters, self.max_iters remains unchanged.
         Otherwise, self.max_iters = max_iters
 
-        :param max_iters:
+        :param max_iters:   The maximum number of iterations that should occur.
         :return:
         """
         if max_iters is not None:
@@ -240,8 +240,8 @@ def stack_images(images, stacking: Stacking):
 
     eg. images = [img]*6, dimensions = (2,3), mode='rd':
     2 images per row, 3 rows, ordered from left to right, up to down
-    :param images:
-    :param stacking:
+    :param images:       A set of opened images.
+    :param stacking:     A Stacking object, which defines how the images should be stacked.
     :return:
     """
     x, y = stacking.cols, stacking.rows
@@ -269,8 +269,8 @@ def stack_images(images, stacking: Stacking):
 def resize_images(images, dimensions: (int, int)):
     """
     Resizes all of the images to the specified dimensions.
-    :param images:
-    :param dimensions:
+    :param images:          A set of opened images.
+    :param dimensions:      The dimensions to resize the images to.
     :return:
     """
     return [cv2.resize(img, dimensions) for img in images]
@@ -286,12 +286,12 @@ def make_image_from_images(
 ):
     """
 
-    :param files_in:
-    :param dir_out:
-    :param file_name:
-    :param ext_out:
-    :param stacking:
-    :param size:         Dimensions of each component image in px.
+    :param files_in:    List of files to read and place into the image.
+    :param dir_out:     The directory to output the file(s) to. If it does not exist, it will be created.
+    :param file_name:   The initial portion of the filename common to each file.
+    :param ext_out:     Output extension for the images.
+    :param stacking:    A Stacking object, which defines how the component images should be stacked.
+    :param size:        Dimensions of each component image in px.
     :return:
     """
     file_name = fo.form_file_name(dir_out, file_name, ext_out)
@@ -319,18 +319,18 @@ def make_images_from_folders_match(
     dirs_in,
     dir_out,
     max_imgs=None,
-    stacking: Stacking = None,
     resize_opt: Resize = Resize.FIRST,
+    stacking: Stacking = None,
     size: Tuple[int, int] = None,
 ):
     """
 
-    :param dirs_in:
-    :param dir_out:
-    :param max_imgs:
-    :param stacking:
-    :param resize_opt:
-    :param size:         Dimensions of each component image in px.
+    :param dirs_in:         List of directories with files to read and place into the images.
+    :param dir_out:         directory to output the file(s) to. If it does not exist, it will be created automatically.
+    :param max_imgs:        The maximum number of images that should be created.
+    :param stacking:        A Stacking object, which defines how the component images should be stacked.
+    :param resize_opt:      How each set of images should be resized.
+    :param size:            Dimensions of each component image in px.
     :return:
     """
     os.makedirs(dir_out, exist_ok=True)
@@ -377,13 +377,13 @@ def make_images_from_folders(
     """
     Draws images with the given extension(s) equally from each folder, resizes each
      individual image to width x height, concatenates them according to the mode, and saves them to dir_out.
-    :param dirs_in:
-    :param ext_in:
-    :param dir_out:
-    :param file_name:
-    :param ext_out:
+    :param dirs_in:         List of directories with files to read and place into the images.
+    :param ext_in:          choose files in the directory with the given extension(s).
+    :param dir_out:         directory to output the file(s) to. If it does not exist, it will be created automatically.
+    :param file_name:       The initial portion of the filename common to each file.
+    :param ext_out:         output extension for the images
     :param max_imgs:        Maximum number of output images.
-    :param stacking:
+    :param stacking:        A Stacking object, which defines how the component images should be stacked.
     :param size:            Dimensions of each component image in px.
     :return:
     """
