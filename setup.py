@@ -8,7 +8,7 @@ print(find_packages())
 
 setuptools.setup(
     name="imgvid_utils",
-    version="0.0.10",
+    version="0.1.0",
     author="Philippe Solodov",
     author_email="solop1906@gmail.com",
     description="A package that provides helpful utilities to interact with videos and images through OpenCV.",
