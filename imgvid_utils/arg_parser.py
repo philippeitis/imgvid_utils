@@ -333,7 +333,7 @@ def validate_arguments(parser):
     """
 
     args = parser.parse_args()
-    args.dir_out = args.dir_out or os.path.dirname(args.name)
+    args.dir_out = args.dir_out or os.path.dirname(args.name) or "./"
     args.dir_out = fo.append_forward_slash_path(args.dir_out)
     args.ext_out = args.ext_out or fo.get_ext(args.name)
     args.name = ".".join(os.path.splitext(os.path.basename(args.name))[:-1])
