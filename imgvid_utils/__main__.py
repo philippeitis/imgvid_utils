@@ -19,11 +19,7 @@ def get_correct_dimensions(args):
         return args.resize_in
 
     if args.resize_out:
-        if args.vstack or args.hstack:
-            cols, rows = (len(args.hstack), 1) if args.hstack else (1, len(args.vstack))
-        else:
-            cols, rows = args.cols, args.rows
-        return validate_resize_out(cols, rows, args.resize_out)
+        return validate_resize_out(args.cols, args.rows, args.resize_out)
 
     if args.read_matching_file_names:
         return None
@@ -33,14 +29,13 @@ def get_correct_dimensions(args):
             args.dirs_in, args.ext_in, args.resize
         )
 
-    files = (args.vstack or args.vstack) or args.files_in
-
-    if not files:
+    if not args.files_in:
         raise EnvironmentError(
             "No files provided."
         )
+
     return ims.get_dimensions_files(
-        files, args.ext_in, args.resize
+        args.files_in, args.ext_in, args.resize
     )
 
 
@@ -61,19 +56,19 @@ if __name__ == "__main__":
     import os
 
     args = ap.parse_arguments()
-    stacking = generate_stacking(args)
 
-    size = get_correct_dimensions(args)
+    input_args = [args.dirs_in, args.ext_in] if args.dirs_in else [args.files_in]
+    output_args = [args.dir_out, args.name, args.ext_out]
+    vargs = {
+        "stacking": generate_stacking(args),
+        "size": get_correct_dimensions(args)
+    }
 
     if args.vstack or args.hstack:
-        files = args.vstack or args.hstack
         ims.make_image_from_images(
-            files,
-            os.path.dirname(args.dest) or "./",
-            os.path.basename(args.dest),
-            fo.get_ext(args.dest),
-            stacking=stacking,
-            size=size,
+            *input_args,
+            *output_args,
+            **vargs,
         )
         exit()
 
@@ -83,21 +78,17 @@ if __name__ == "__main__":
         ims.make_images_from_folders_match(
             args.dirs_in,
             args.dir_out,
-            args.max_imgs,
+            **vargs,
             resize_opt=args.resize,
-            stacking=stacking,
-            size=size,
+            max_imgs=args.max_imgs,
+
         )
         exit()
 
     print(
         "Output file will have dimensions: %d x %d px."
-        % (size[0] * args.cols, size[1] * args.rows)
+        % (vargs["size"][0] * args.cols, vargs["size"][1] * args.rows)
     )
-
-    input_args = [args.dirs_in, args.ext_in] if args.dirs_in else [args.files_in]
-    output_args = [args.dir_out, args.name, args.ext_out]
-    vargs = {"stacking": stacking, "size": size}
 
     if args.to_vid:
         if args.dirs_in:

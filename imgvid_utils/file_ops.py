@@ -203,8 +203,12 @@ def form_file_name(dir_out: str, file_name: str, ext: str) -> str:
 
 
 def get_ext(file):
-    ext_in = os.path.splitext(file)[1]
-    return ext_in[1:]
+    """
+    Returns the file extension without any precending dots.
+    :param file:    The file from which to get the extension.
+    :return:
+    """
+    return os.path.splitext(file)[1][1:]
 
 
 def has_video_exts(exts):

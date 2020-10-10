@@ -27,12 +27,6 @@ def parse_arguments():
         help="List any images you want to stack horizontally"
     )
 
-    lazy_parser.add_argument(
-        "--dest",
-        type=str,
-        help="Destination image"
-    )
-
     parser = parser_y.add_argument_group()
     # TODO: excess images in directory? Insufficient images in directory?
 
@@ -70,25 +64,25 @@ def parse_arguments():
         dest="ext_out",
         type=str,
         choices=["png", "jpg", "mp4"],
-        default="jpg",
+        default=None,
         help="Outputs file with given extension."
-             " Overridden by --to_vid, --to_img, and --to_imgs",
+             " Overridden by --to_vid, --to_img, --to_imgs, and set from --name by default.",
     )
 
     parser.add_argument(
         "--dir_out",
         dest="dir_out",
         type=str,
-        default="./output/",
-        help="Output directory.",
+        default=None,
+        help="Output directory. Set from --name by default.",
     )
 
     parser.add_argument(
         "--name",
         dest="name",
         type=str,
-        default="file",
-        help="File name. Do not include in dir_out",
+        default="./output/file.jpg",
+        help="File name. Sets --dir_out and --ext_out if not already specified.",
     )
 
     output_formats = parser.add_mutually_exclusive_group()
@@ -258,7 +252,13 @@ def validate_lazy_arguments(parser, args) -> bool:
     :return:        A boolean indicating whether lazy arguments exist.
     """
     if args.vstack or args.hstack:
-        missing_files = fo.get_missing_files(args.vstack or args.hstack)
+        args.files_in = args.vstack or args.hstack
+        args.vstack = bool(args.vstack)
+        args.hstack = bool(args.hstack)
+
+        args.cols, args.rows = (len(args.files_in), 1) if args.hstack else (1, len(args.files_in))
+        missing_files = fo.get_missing_files(args.files_in)
+
         if len(missing_files) != 0:
             pl = IsPlural(missing_files)
             dir_str = PluralizableString("file", "", "s", pl)
@@ -267,8 +267,6 @@ def validate_lazy_arguments(parser, args) -> bool:
                 "The %s specified at %s %s not exist."
                 % (dir_str, ", ".join(missing_files), do_str)
             )
-        if not args.dest:
-            parser.error("Must specify a destination file with --vstack or --hstack.")
         return True
     return False
 
@@ -348,8 +346,10 @@ def validate_arguments(parser):
     """
 
     args = parser.parse_args()
+    args.dir_out = args.dir_out or os.path.dirname(args.name)
     args.dir_out = fo.append_forward_slash_path(args.dir_out)
-    args.dirs_in = fo.append_forward_slash_path(args.dirs_in)
+    args.ext_out = args.ext_out or fo.get_ext(args.name)
+    args.name = ".".join(os.path.splitext(os.path.basename(args.name))[:-1])
 
     if validate_lazy_arguments(parser, args):
         return args

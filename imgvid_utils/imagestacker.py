@@ -328,8 +328,8 @@ def make_images_from_folders_match(
     :param dirs_in:         List of directories with files to read and place into the images.
     :param dir_out:         directory to output the file(s) to. If it does not exist, it will be created automatically.
     :param max_imgs:        The maximum number of images that should be created.
-    :param stacking:        A Stacking object, which defines how the component images should be stacked.
     :param resize_opt:      How each set of images should be resized.
+    :param stacking:        A Stacking object, which defines how the component images should be stacked.
     :param size:            Dimensions of each component image in px.
     :return:
     """
