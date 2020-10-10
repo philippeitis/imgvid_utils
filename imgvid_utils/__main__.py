@@ -97,6 +97,9 @@ if __name__ == "__main__":
             vs.make_video_from_videos(*input_args, *output_args, **vargs)
     else:
         if args.files_in:
-            ims.make_image_from_images(*input_args, *output_args, **vargs)
+            if args.to_imgs:
+                vs.split_video(*input_args, *output_args, frame_count=args.max_imgs)
+            else:
+                ims.make_image_from_images(*input_args, *output_args, **vargs)
         else:
             ims.make_images_from_folders(*input_args, *output_args, **vargs, max_imgs=args.max_imgs)

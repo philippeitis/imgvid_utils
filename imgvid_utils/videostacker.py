@@ -268,7 +268,7 @@ def split_video(
     ext_out: str = "png",
     frame_count: int = -1,
     start_frame: int = 0,
-    end_frame: int = -1,
+    end_frame: int = None,
 ):
     """
     Takes each individual frame from the video file_in, and outputs it as an image with the file_name followed by a
@@ -293,7 +293,7 @@ def split_video(
     vid_iterator = VideoIterator(file_in)
     num_frames = vid_iterator.num_frames
 
-    if end_frame != -1 and frame_count == -1:
+    if end_frame is not None and frame_count == -1:
         frame_count = min(end_frame, num_frames) - start_frame
     else:
         frame_count = min(
