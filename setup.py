@@ -23,7 +23,7 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     install_requires=[
-        "opencv-python==4.2.0.32",
+        "opencv-python==4.5.1.48",
     ],
 
 )
