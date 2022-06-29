@@ -43,21 +43,23 @@ Finding images with matching file names and concatenating them:
 python -m imgvid_utils --dirs_in dir1 dir2 --read_matching_file_names
 ```
 
-###The library itself also exposes these as functions:
+## Examples
 
-Defining a stacking:
+### Defining a stacking
 ```python
 from imgvid_utils.imagestacker import Stacking
 
 stacking = Stacking(2, 2, "rd")
 ```
+
 This stacking has 2 columns, 2 rows, and will stack images to the right and downwards.
-Stacking images in an arbitrary fashion:
+
+### Stacking images in an arbitrary fashion:
 ```
 python -m imgvid_utils --files_in image1.jpg .. image25.jpg --rows 5 --cols 5 --name output.png
 ```
 
-Stacking images in an arbitrary fashion from many images:
+### Stacking images in an arbitrary fashion from many images
 ```python
 from imgvid_utils import imagestacker
 
@@ -71,7 +73,7 @@ imagestacker.make_image_from_images(
 )
 ```
 
-Stacking videos in an arbitrary fashion from many source directories with images:
+### Stacking videos in an arbitrary fashion from many source directories with images
 ```python
 from imgvid_utils import videostacker
 
@@ -88,7 +90,7 @@ videostacker.make_video_from_folders(
 )
 ```
 
-Stacking videos in an arbitrary fashion from many source images:
+### Stacking videos in an arbitrary fashion from many source images
 ```python
 from imgvid_utils import videostacker
 
@@ -103,7 +105,7 @@ videostacker.make_video_from_images(
 )
 ```
 
-Stacking videos in an arbitrary fashion from many source videos:
+### Stacking videos in an arbitrary fashion from many source videos
 ```python
 from imgvid_utils import videostacker
 
@@ -120,7 +122,7 @@ videostacker.make_video_from_videos(
 
 ```
 
-Splitting videos into component frames:
+### Splitting videos into component frames
 ```python
 from imgvid_utils import videostacker
 
@@ -135,7 +137,7 @@ videostacker.split_video(
 )
 ```
 
-Finding images with matching file names and concatenating them:
+### Finding images with matching file names and concatenating them
 ```python
 from imgvid_utils import imagestacker
 
