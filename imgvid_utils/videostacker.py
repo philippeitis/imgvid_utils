@@ -13,7 +13,7 @@ def get_video_dims(video) -> Tuple[int, int]:
 
 
 class VideoIterator:
-    def __init__(self, paths_to_videos, num=1, frame_lock=True):
+    def __init__(self, paths_to_videos, stacking=Stacking.default(), frame_lock=True):
         """
         Initializes a video iterator that will return num frames per iteration from each video in paths_to_videos.
 
@@ -27,7 +27,8 @@ class VideoIterator:
         else:
             self.paths = paths_to_videos
 
-        self.num = num
+        self.stacking = stacking
+        self.num = stacking.cols * stacking.rows
         self.videos = [None] * len(self.paths)
         self.videos_completed = [False] * len(self.paths)
         self.last_frame = [None] * len(self.paths)
@@ -88,7 +89,7 @@ class VideoIterator:
                         self.videos_completed[self.active_vid] = True
                 output.append(self.last_frame[self.active_vid])
                 self.active_vid = (self.active_vid + 1) % len(self.videos)
-            return output
+            return ims.ImageDataStore(output, None, None)
         else:
             raise StopIteration()
 
@@ -99,15 +100,13 @@ class VideoIterator:
 
 
 # TODO: add support for more video formats
-def make_video_from_folders(
-    dirs_in,
-    ext_in="jpg",
+def make_video_from_generator(
+    image_iter: ims.ImageGenerator,
     dir_out="./",
     file_name="output",
     ext_out="mp4",
     video_format="mp4v",
     fps=24,
-    stacking: Stacking = None,
     size: Tuple[int, int] = None,
 ):
     """
@@ -122,14 +121,12 @@ def make_video_from_folders(
             c[i] d[i]
     where x[i] refers to the ith file in that directory
 
-    :param dirs_in:         List of directories with files to read and place into the videos.
-    :param ext_in:          choose files in the directory with the given extension(s).
+    :param image_iter:      An iterator producing image frames
     :param dir_out:         directory to output the file to. If it does not exist, it will be created automatically.
     :param file_name:       name of output video
     :param ext_out:         output extension for the video (default mp4)
     :param video_format:    format to encode the video in (default mp4v)
     :param fps:             fps of output video.
-    :param stacking:        A Stacking object, which defines how the component images should be stacked.
     :param size:            Dimensions of each component image in px.
     :return:                nothing
     """
@@ -138,25 +135,22 @@ def make_video_from_folders(
     if ext_out not in supported_extensions:
         raise ValueError("Extension %s is not currently supported." % (ext_out,))
 
-    stacking = stacking or Stacking.default()
-
     video_format = cv2.VideoWriter_fourcc(*video_format)
     # apiPreference may be required depending on cv2 version.
-    image_iter = ims.ImageGenerator(dirs_in, ext_in, stacking.cols * stacking.rows)
 
-    (width, height) = size
+    width, height = size
 
     vid = cv2.VideoWriter(
         filename=fo.form_file_name(dir_out, file_name, ext_out),
         apiPreference=0,
         fourcc=video_format,
         fps=fps,
-        frameSize=(width * stacking.cols, height * stacking.rows),
+        frameSize=(width * image_iter.stacking.cols, height * image_iter.stacking.rows),
     )
     for images_data in image_iter:
         vid.write(
             ims.stack_images(
-                ims.resize_images(images_data.images, (width, height)), stacking
+                ims.resize_images(images_data.images, (width, height)), image_iter.stacking
             )
         )
     vid.release()
@@ -209,58 +203,6 @@ def make_video_from_images(
     for image in files_in:
         im = cv2.imread(image)
         vid.write(ims.resize_images([im], size)[0])
-    vid.release()
-
-
-# Input paths should be video files. Output should be full path.
-# Will stack or videos in directory x by y, and resize each input image to width by height px.
-def make_video_from_videos(
-    files_in: Union[List[str], str],
-    dir_out: str = "./",
-    file_name: str = "output",
-    ext_out: str = "mp4",
-    video_format: str = "mp4v",
-    stacking: Stacking = None,
-    size: Tuple[int, int] = None,
-    fps_lock: bool = True,
-) -> None:
-    """
-    Creates, and saves a video with the file_name, encoded using video_format containing each video in files_in,
-    stacked col x row, in order of appearance, with each individual video frame resized to width, height.
-
-    :param files_in:        List of files to read and place into the video.
-    :param dir_out:         directory to output the file to. If it does not exist, it will be created automatically
-    :param file_name:       Name of output video
-    :param ext_out:         output extension for the video (default mp4)
-    :param video_format:    format to encode the video in (default mp4v)
-    :param stacking:        A Stacking object, which defines how the component images should be stacked.
-    :param size:            Dimensions of each component image in px.
-    :param fps_lock:        Require all source videos to have the same frame rate.
-    :return:                nothing
-    """
-
-    supported_extensions = ["mp4"]
-    if ext_out not in supported_extensions:
-        raise ValueError("Extension %s is not currently supported." % (ext_out,))
-
-    stacking = stacking or Stacking.default()
-
-    video_format = cv2.VideoWriter_fourcc(*video_format)
-    video_iter = VideoIterator(files_in, stacking.cols * stacking.rows, fps_lock)
-
-    (width, height) = size or video_iter.dims
-
-    vid = cv2.VideoWriter(
-        filename=fo.form_file_name(dir_out, file_name, ext_out),
-        apiPreference=0,
-        fourcc=video_format,
-        fps=video_iter.fps,
-        frameSize=(width * stacking.cols, height * stacking.rows),
-    )
-    for images in video_iter:
-        vid.write(
-            ims.stack_images(ims.resize_images(images, (width, height)), stacking)
-        )
     vid.release()
 
 
@@ -318,6 +260,6 @@ def split_video(
             f"{file_name}{str(counter).zfill(num_zeros)}{ext_out}",
         )
         frames.append(temp_name)
-        cv2.imwrite(temp_name, frame[0])
+        cv2.imwrite(temp_name, frame.images[0])
 
     return frames
