@@ -332,18 +332,16 @@ def make_image_from_images(
 
 
 def make_images_from_folders_match(
-    dirs_in,
+    image_iter: ImageGeneratorMatchToName,
     dir_out,
-    max_imgs=None,
     resize_opt: Resize = Resize.FIRST,
-    stacking: Stacking = None,
+    stacking: Stacking = Stacking.default(),
     size: Tuple[int, int] = None,
 ):
     """
 
-    :param dirs_in:         List of directories with files to read and place into the images.
+    :param image_iter:
     :param dir_out:         directory to output the file(s) to. If it does not exist, it will be created automatically.
-    :param max_imgs:        The maximum number of images that should be created.
     :param resize_opt:      How each set of images should be resized.
     :param stacking:        A Stacking object, which defines how the component images should be stacked.
     :param size:            Dimensions of each component image in px.
@@ -351,16 +349,8 @@ def make_images_from_folders_match(
     """
     os.makedirs(dir_out, exist_ok=True)
 
-    image_iter = ImageGeneratorMatchToName(dirs_in, max_imgs)
-
-    stacking = stacking or Stacking.default()
-
-    if size is None:
-        def dims(images):
-            return resize_opt.choose([(image.shape[1], image.shape[0]) for image in images])
-    else:
-        def dims(_):
-            return size
+    def dims(images):
+        return size or resize_opt.choose([(image.shape[1], image.shape[0]) for image in images])
 
     for image_data in image_iter:
         images = image_data.images
