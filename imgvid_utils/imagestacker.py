@@ -318,19 +318,17 @@ def make_image_from_images(
     stacking = stacking or Stacking.default()
 
     if isinstance(files_in, str):
-        cv2.imwrite(file_name, cv2.imread(files_in))
-    elif len(files_in) == 1:
-        cv2.imwrite(file_name, cv2.imread(files_in[0]))
-    else:
-        images = []
-        for file in files_in:
-            images.append(cv2.imread(file))
-        cv2.imwrite(
-            file_name,
-            stack_images(
-                resize_images(images, size), stacking
-            ),
-        )
+        files_in = [files_in]
+
+    images = []
+    for file in files_in:
+        images.append(cv2.imread(file))
+    cv2.imwrite(
+        file_name,
+        stack_images(
+            resize_images(images, size), stacking
+        ),
+    )
 
 
 def make_images_from_folders_match(
