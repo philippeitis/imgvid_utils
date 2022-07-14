@@ -101,7 +101,7 @@ class VideoIterator:
 
 # TODO: add support for more video formats
 def make_video_from_generator(
-    image_iter: ims.ImageGenerator,
+    image_iter: ims.ImageIterator,
     dir_out="./",
     file_name="output",
     ext_out="mp4",
