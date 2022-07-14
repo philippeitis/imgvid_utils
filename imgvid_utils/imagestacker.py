@@ -148,20 +148,20 @@ class ImageIterator:
 
     def __next__(self):
         """ Returns num images in an array. """
-        if self.curr_index < self._max_index:
-            output = []
-            for i in range(self.num):
-                output.append(
-                    cv2.imread(self.files[self.active_dir][self.index[self.active_dir]])
-                )
-                self.index[self.active_dir] += 1
-                self.curr_index += 1
-                self.active_dir += 1
-                self.active_dir %= len(self.files)
-
-            return ImageDataStore(output, None, None)
-        else:
+        if self.curr_index >= self._max_index:
             raise StopIteration()
+
+        output = []
+        for i in range(self.num):
+            output.append(
+                cv2.imread(self.files[self.active_dir][self.index[self.active_dir]])
+            )
+            self.index[self.active_dir] += 1
+            self.curr_index += 1
+            self.active_dir += 1
+            self.active_dir %= len(self.files)
+
+        return ImageDataStore(output, str(self.curr_index), None)
 
 
 class ImageGeneratorMatchToName:
@@ -366,7 +366,7 @@ def make_images_from_folders_match(
 def make_images_from_iterator(
     image_iter: ImageIterator,
     dir_out: str = "./",
-    file_name: str = "output",
+    base_name: str = "output",
     ext_out="jpg",
     max_imgs: int = None,
     size: Tuple[int, int] = (640, 480),
@@ -375,7 +375,7 @@ def make_images_from_iterator(
     Draws images with the given extension(s) equally from each folder, resizes each
      individual image to width x height, concatenates them according to the mode, and saves them to dir_out.
     :param dir_out:         directory to output the file(s) to. If it does not exist, it will be created automatically.
-    :param file_name:       The initial portion of the filename common to each file.
+    :param base_name:       The initial portion of the filename common to each file.
     :param ext_out:         output extension for the images
     :param max_imgs:        Maximum number of output images.
     :param size:            Dimensions of each component image in px.
@@ -388,12 +388,12 @@ def make_images_from_iterator(
         if counter >= max_imgs:
             break
 
-        temp_file_name = fo.form_file_name(
-            dir_out, file_name + str(counter).zfill(num_zeros), ext_out
+        file_name = fo.form_file_name(
+            dir_out, base_name + image_data.file_name.zfill(num_zeros), ext_out
         )
 
         cv2.imwrite(
-            temp_file_name,
+            file_name,
             stack_images(
                 resize_images(image_data.images, size),
                 image_iter.stacking,
