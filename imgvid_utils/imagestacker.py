@@ -57,7 +57,7 @@ class ImageDataStore:
         return self._file_name
 
 
-class ImageGenerator:
+class ImageIterator:
     # TODO: allow multiple file extension inputs.
     def __init__(self, directories, exts=None, stacking: Stacking = None):
         """
@@ -373,39 +373,31 @@ def make_images_from_folders_match(
         )
 
 
-def make_images_from_folders(
-    dirs_in: Union[List[str], str],
-    ext_in: Union[List[str], str] = "jpg",
+def make_images_from_iterator(
+    image_iter: ImageIterator,
     dir_out: str = "./",
     file_name: str = "output",
     ext_out="jpg",
     max_imgs: int = None,
-    stacking: Stacking = None,
     size: Tuple[int, int] = (640, 480),
 ):
     """
     Draws images with the given extension(s) equally from each folder, resizes each
      individual image to width x height, concatenates them according to the mode, and saves them to dir_out.
-    :param dirs_in:         List of directories with files to read and place into the images.
-    :param ext_in:          choose files in the directory with the given extension(s).
     :param dir_out:         directory to output the file(s) to. If it does not exist, it will be created automatically.
     :param file_name:       The initial portion of the filename common to each file.
     :param ext_out:         output extension for the images
     :param max_imgs:        Maximum number of output images.
-    :param stacking:        A Stacking object, which defines how the component images should be stacked.
     :param size:            Dimensions of each component image in px.
     :return:
     """
-    stacking = stacking or Stacking.default()
-
-    image_iter = ImageGenerator(dirs_in, exts=ext_in, num=stacking.cols * stacking.rows)
-    image_iter.max_iters = image_iter.max_iters // (max_imgs if max_imgs else 1)
     os.makedirs(dir_out, exist_ok=True)
     num_zeros = len(str(image_iter.max_iters - 1))
 
-    stacking = stacking or Stacking.default()
-
     for counter, image_data in enumerate(image_iter):
+        if counter >= max_imgs:
+            break
+
         temp_file_name = fo.form_file_name(
             dir_out, file_name + str(counter).zfill(num_zeros), ext_out
         )
@@ -414,7 +406,7 @@ def make_images_from_folders(
             temp_file_name,
             stack_images(
                 resize_images(image_data.images, size),
-                stacking,
+                image_iter.stacking,
             ),
         )
 
