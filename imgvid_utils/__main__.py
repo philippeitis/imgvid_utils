@@ -54,9 +54,9 @@ if __name__ == "__main__":
     os.makedirs(os.path.dirname(args.dir_out), exist_ok=True)
 
     if args.read_matching_file_names:
-        source = ims.DirectoryIteratorMatchNames(args.dirs_in, **vargs).resize_individual(
-            args.resize
-        )
+        source = ims.DirectoryIteratorMatchNames(
+            args.dirs_in, **vargs
+        ).resize_individual(args.resize)
     elif args.dirs_in:
         if fo.has_image_exts(args.ext_in):
             source = ims.DirectoryIterator(
