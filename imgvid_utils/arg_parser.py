@@ -17,14 +17,14 @@ def parse_arguments():
         "--vstack",
         nargs="+",
         type=str,
-        help="List any images you want to stack vertically"
+        help="List any images you want to stack vertically",
     )
 
     lazy_choices.add_argument(
         "--hstack",
         nargs="+",
         type=str,
-        help="List any images you want to stack horizontally"
+        help="List any images you want to stack horizontally",
     )
 
     parser = parser_y.add_argument_group()
@@ -46,7 +46,7 @@ def parse_arguments():
         nargs="+",
         type=str,
         help="List any images or videos you want to use. Not compatible"
-             "with --dirs_in. If --to_vid, must be videos.",
+        "with --dirs_in.",
     )
 
     parser.add_argument(
@@ -66,7 +66,7 @@ def parse_arguments():
         choices=["png", "jpg", "mp4"],
         default=None,
         help="Outputs file with given extension."
-             " Overridden by --to_vid, --to_img, --to_imgs, and set from --name by default.",
+        " Overridden by --to_vid, --to_img, --to_imgs, and set from --name by default.",
     )
 
     parser.add_argument(
@@ -92,8 +92,8 @@ def parse_arguments():
         dest="to_vid",
         action="store_true",
         help="Will output a video file (default 30fps, .mp4). Not compatible with --to_img."
-             " If multiple directories are provided, will only use first x*y videos."
-             " If one directory is provided, will use first x*y videos.",
+        " If multiple directories are provided, will only use first x*y videos."
+        " If one directory is provided, will use first x*y videos.",
     )
 
     output_formats.add_argument(
@@ -110,7 +110,7 @@ def parse_arguments():
         nargs=2,
         type=int,
         help="Sets the dimensions of the input image. "
-             "Not compatible with -resize_out or -resize_down or -resize_up",
+        "Not compatible with -resize_out or -resize_down or -resize_up",
     )
 
     resize.add_argument(
@@ -119,7 +119,7 @@ def parse_arguments():
         nargs=2,
         type=int,
         help="Sets the dimensions of the output image. "
-             "Not compatible with -resize_in or -resize_down or -resize_up",
+        "Not compatible with -resize_in or -resize_down or -resize_up",
     )
 
     resize.add_argument(
@@ -129,9 +129,9 @@ def parse_arguments():
         type=get_resize_enum,
         default="first",
         help="Resizes the images according to the choice. "
-             "down resizes each image to the smallest image. "
-             "up resizes each image to the largest image. "
-             "first resizes each image to the first image seen."
+        "down resizes each image to the smallest image. "
+        "up resizes each image to the largest image. "
+        "first resizes each image to the first image seen.",
     )
 
     parser.add_argument(
@@ -153,8 +153,8 @@ def parse_arguments():
     parser.add_argument(
         "--fps",
         dest="fps",
-        default=30,
-        type=int,
+        default=30.0,
+        type=float,
         help="Frame rate of output video. Not compatible if videos are passed in.",
     )
 
@@ -163,7 +163,7 @@ def parse_arguments():
         dest="fps_unlock",
         action="store_true",
         help="Removes the requirement for input videos to have matching framerates. "
-             "May cause issues with frames not matching up if framerates do not match."
+        "May cause issues with frames not matching up if framerates do not match.",
     )
 
     parser.add_argument(
@@ -178,7 +178,7 @@ def parse_arguments():
         "--read_matching_file_names",
         action="store_true",
         help="Will concatenate files with the same name from each directory,"
-             " and will resize on a per image basis unless a width and height are specified.",
+        " and will resize on a per image basis unless a width and height are specified.",
     )
 
     return validate_arguments(parser_x)
@@ -196,16 +196,11 @@ def get_resize_enum(s) -> ims.Resize:
     :param s:
     :return:
     """
-    if s == "up":
-        return ims.Resize.UP
-
-    if s == "down":
-        return ims.Resize.DOWN
-
-    if s == "first":
-        return ims.Resize.FIRST
-
-    return ims.Resize.NONE
+    return {
+        "up": ims.Resize.UP,
+        "down": ims.Resize.DOWN,
+        "first": ims.Resize.FIRST,
+    }.get(s, ims.Resize.NONE)
 
 
 class IsPlural:
@@ -220,11 +215,11 @@ class IsPlural:
 
 class PluralizableString:
     def __init__(
-            self,
-            base_string: str,
-            non_plural_end: str,
-            plural_end: str,
-            pluralizable: IsPlural,
+        self,
+        base_string: str,
+        non_plural_end: str,
+        plural_end: str,
+        pluralizable: IsPlural,
     ):
         self.text: str = base_string + (
             plural_end if pluralizable.is_plural else non_plural_end
@@ -247,7 +242,9 @@ def parse_lazy_arguments(args):
     args.files_in = args.vstack or args.hstack
     args.vstack = bool(args.vstack)
     args.hstack = bool(args.hstack)
-    args.cols, args.rows = (len(args.files_in), 1) if args.hstack else (1, len(args.files_in))
+    args.cols, args.rows = (
+        (len(args.files_in), 1) if args.hstack else (1, len(args.files_in))
+    )
 
 
 def validate_dirs(parser, args):
@@ -316,7 +313,9 @@ def validate_extensions(parser, args):
 
     if fo.has_video_exts(args.ext_in):
         if args.to_imgs:
-            parser.error("Can not select --to_imgs and specify videos as input from directories.")
+            parser.error(
+                "Can not select --to_imgs and specify videos as input from directories."
+            )
         args.to_vid = True
 
     if args.to_vid and args.ext_out not in {"mp4"}:
@@ -346,9 +345,13 @@ def validate_arguments(parser):
 
     if args.read_matching_file_names:
         if not args.dirs_in:
-            parser.error("--read_matching_file_names requires --dirs_in to be specified.")
+            parser.error(
+                "--read_matching_file_names requires --dirs_in to be specified."
+            )
         if args.cols * args.rows != len(args.dirs_in):
-            parser.error(f"Provided --dirs_in of {len(args.dirs_in)} directories and output stacking"
-                         f" of {args.cols} by {args.rows} images are not compatible.")
+            parser.error(
+                f"Provided --dirs_in of {len(args.dirs_in)} directories and output stacking"
+                f" of {args.cols} by {args.rows} images are not compatible."
+            )
 
     return args

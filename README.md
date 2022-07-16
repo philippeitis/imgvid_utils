@@ -59,94 +59,72 @@ This stacking has 2 columns, 2 rows, and will stack images to the right and down
 python -m imgvid_utils --files_in image1.jpg .. image25.jpg --rows 5 --cols 5 --name output.png
 ```
 
-### Stacking images in an arbitrary fashion from many images
-```python
-from imgvid_utils import imagestacker
+### Using the API
 
-imagestacker.make_image_from_images(
-    files_in,
-    dir_out="./",
-    file_name="output",
-    ext_out="jpg",
-    stacking=None,
-    size=(640, 480),
+imgvid_utils provides a flexible API based on frame sources and sinks.
+
+### Defining frame sources
+
+```python
+from imgvid_utils import imagestacker as ims
+from imgvid_utils import videostacker as vs
+
+# Groups the nth image in each list
+ims.FileIterator(
+    [["file1.png", "file2.jpg", "file3.png"], ["file1.jpg", "file2.png", ...], ...],
+    stacking=ims.Stacking(1, 2, "rd")
+)
+
+# Groups images by order of appearance in the provided directories
+ims.DirectoryIterator(
+    ["./path_to_first_image", "./path_to_second_image"],
+    stacking=ims.Stacking(1, 2, "rd")
+)
+
+# A variant of DirectoryIterator which groups images with matching file names
+# Output images are returned in lexographical order
+ims.DirectoryIteratorMatchNames(
+    ["./path_to_first_image", "./path_to_second_image"],
+    stacking=ims.Stacking(1, 2, "rd")
+)
+
+# Groups the nth frame in each video
+vs.VideoIterator(
+    ["video1.mp4", "video2.mp4"],
+    stacking=ims.Stacking(1, 2, "rd"),
 )
 ```
 
-### Stacking videos in an arbitrary fashion from many source directories with images
+### Renaming individual frames
 ```python
-from imgvid_utils import videostacker
-
-videostacker.make_video_from_folders(
-    dirs_in,
-    ext_in="jpg",
-    dir_out="./",
-    file_name="output",
-    ext_out="mp4",
-    video_format="mp4v",
-    fps=24,
-    stacking=None,
-    size=None,
-)
+source.rename("output_dir", "prefix", "extension")
 ```
 
-### Stacking videos in an arbitrary fashion from many source images
+### Resizing all input frames
 ```python
-from imgvid_utils import videostacker
-
-videostacker.make_video_from_images(
-    files_in,
-    dir_out="./",
-    file_name="output",
-    ext_out="mp4",
-    video_format="mp4v",
-    fps=24,
-    size=None,
-)
+source.resize_in((640, 480))
 ```
 
-### Stacking videos in an arbitrary fashion from many source videos
+### Resizing input frame on an individual basis
 ```python
-from imgvid_utils import videostacker
-
-videostacker.make_video_from_videos(
-    files_in,
-    dir_out= "./",
-    file_name="output",
-    ext_out="mp4",
-    video_format="mp4v",
-    stacking=None,
-    size=None,
-    fps_lock=True,
-)
-
+source.resize(ims.Resize.FIRST)
+# Choices are
+# Resize.FIRST: Chooses the first set of dimensions
+# Resize.UP: Chooses the dimensions with the largest area
+# Resize.DOWN: Chooses the dimensions with the smallest area
 ```
 
-### Splitting videos into component frames
+### Controlling which frames are selected
 ```python
-from imgvid_utils import videostacker
-
-videostacker.split_video(
-    file_in,
-    dir_out,
-    file_name="",
-    ext_out="png",
-    frame_count=-1,
-    start_frame=0,
-    end_frame=None,
-)
+# Skips the first 10 frames of input, and output only 10 frames
+source.skip(10).take(10)
 ```
 
-### Finding images with matching file names and concatenating them
+### Creating output
 ```python
-from imgvid_utils import imagestacker
+# Requires source.rename() to be called first
+source.write_images()
 
-imagestacker.make_images_from_folders_match(
-    dirs_in,
-    dir_out,
-    max_imgs=None,
-    resize_opt=imagestacker.Resize.FIRST,
-    stacking=None,
-    size=None,
-)
+### Requires source.resize_in() to be called first
+source.write_video("path/to/video.mp4", video_format="mp4v", fps=24.0)
 ```

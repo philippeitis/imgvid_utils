@@ -1,3 +1,4 @@
+import enum
 import os
 import glob
 
@@ -72,7 +73,9 @@ def match_all_cases(strx: str):
     :param strx: Any string.
     :return:     Returns a regex which will match the same string.
     """
-    return "".join("[%s%s]" % (c.lower(), c.upper()) if c.isalpha() else c for c in strx)
+    return "".join(
+        "[%s%s]" % (c.lower(), c.upper()) if c.isalpha() else c for c in strx
+    )
 
 
 def get_files(directory: str, ext: Union[List[str], str]) -> List[str]:
@@ -102,7 +105,9 @@ def get_files(directory: str, ext: Union[List[str], str]) -> List[str]:
     extensions = [prepend_dot(extx) for extx in ext]
     directory = append_forward_slash_path(directory)
     frames = {
-        frame for ext1 in extensions for frame in glob.glob(f"{directory}*{match_all_cases(ext1)}")
+        frame
+        for ext1 in extensions
+        for frame in glob.glob(f"{directory}*{match_all_cases(ext1)}")
     }
 
     return sorted(list(frames))
@@ -195,11 +200,8 @@ def form_file_name(dir_out: str, file_name: str, ext: str) -> str:
     :param ext:         the file extension
     :return:
     """
-    # Needs to check that file_name doesn't contain an extension.
     split_name = os.path.splitext(file_name)
-    if len(split_name) > 1:
-        file_name = ".".join(split_name[:-1])
-    return os.path.join(dir_out, file_name + prepend_dot(ext))
+    return os.path.join(dir_out, split_name[0] + prepend_dot(ext))
 
 
 def get_ext(file):
@@ -209,6 +211,15 @@ def get_ext(file):
     :return:
     """
     return os.path.splitext(file)[1][1:]
+
+
+class FileCategory(enum.Enum):
+    VIDEO = 0
+    IMAGE = 1
+
+    @classmethod
+    def from_str(cls, s: str) -> "Self":
+        return {"mp4": cls.VIDEO, "png": cls.IMAGE, "jpg": cls.IMAGE}[s]
 
 
 def has_video_exts(exts):
