@@ -12,7 +12,7 @@ class TestVideoStacker(unittest.TestCase):
         return os.path.normpath(path_one) == os.path.normpath(path_two)
 
     def test_video_raises_error_on_non_existent_file(self):
-        self.assertRaises(ValueError, vs.split_video, "./test_files/i_do_not_exist.mp4", "temp/")
+        self.assertRaises(ValueError, vs.VideoIterator, "./test_files/i_do_not_exist.mp4", "temp/")
 
     def test_videosplit(self):
         # vs.split_video("./tests/test_files/00000.MTS", "temp/", "kitty", "png", frame_count=100, start_frame=15)
