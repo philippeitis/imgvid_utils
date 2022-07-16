@@ -204,7 +204,7 @@ def form_file_name(dir_out: str, file_name: str, ext: str) -> str:
     return os.path.join(dir_out, split_name[0] + prepend_dot(ext))
 
 
-def get_ext(file):
+def get_ext(file: str):
     """
     Returns the file extension without any precending dots.
     :param file:    The file from which to get the extension.
@@ -218,18 +218,18 @@ class FileCategory(enum.Enum):
     IMAGE = 1
 
     @classmethod
-    def from_str(cls, s: str) -> "Self":
+    def from_str(cls, s: str) -> "FileCategory":
         return {"mp4": cls.VIDEO, "png": cls.IMAGE, "jpg": cls.IMAGE}[s]
 
 
-def has_video_exts(exts):
+def has_video_exts(exts: Union[List[str], str]):
     video_exts = {"mp4"}
     if isinstance(exts, str):
         return exts in video_exts
     return bool(set(exts).intersection(video_exts))
 
 
-def has_image_exts(exts):
+def has_image_exts(exts: Union[List[str], str]):
     image_exts = {"png", "jpg"}
     if isinstance(exts, str):
         return exts in image_exts
