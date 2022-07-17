@@ -1,12 +1,10 @@
 import enum
 import os
 import glob
+from pathlib import Path
 
 from typing import Union, List
-
-
-def is_file(file: str) -> bool:
-    return os.path.exists(file) and os.path.isfile(file)
+from os.path import isdir, isfile
 
 
 def get_missing_files(files: Union[str, List[str]]) -> List[str]:
@@ -17,9 +15,9 @@ def get_missing_files(files: Union[str, List[str]]) -> List[str]:
     :return:
     """
     if isinstance(files, str):
-        return [] if is_file(files) else [files]
+        return [] if isfile(files) else [files]
 
-    return [file for file in files if not is_file(file)]
+    return [file for file in files if not isfile(file)]
 
 
 def check_files_exist(files: Union[str, List[str]]) -> bool:
@@ -30,13 +28,9 @@ def check_files_exist(files: Union[str, List[str]]) -> bool:
     :return:
     """
     if isinstance(files, str):
-        return is_file(files)
+        return isfile(files)
 
-    return all((is_file(file) for file in files))
-
-
-def is_dir(directory: str) -> bool:
-    return os.path.exists(directory) and os.path.isdir(directory)
+    return all((isfile(file) for file in files))
 
 
 def get_missing_dirs(directories: Union[str, List[str]]) -> List[str]:
@@ -47,9 +41,9 @@ def get_missing_dirs(directories: Union[str, List[str]]) -> List[str]:
     :return:
     """
     if isinstance(directories, str):
-        return [] if is_dir(directories) else [directories]
+        return [] if isdir(directories) else [directories]
 
-    return [directory for directory in directories if not is_dir(directory)]
+    return [directory for directory in directories if not isdir(directory)]
 
 
 def check_dirs_exist(directories: Union[str, List[str]]) -> bool:
@@ -60,9 +54,9 @@ def check_dirs_exist(directories: Union[str, List[str]]) -> bool:
     :return:
     """
     if isinstance(directories, str):
-        return is_dir(directories)
+        return isdir(directories)
 
-    return all((is_dir(directory) for directory in directories))
+    return all((isdir(directory) for directory in directories))
 
 
 def match_all_cases(strx: str):
@@ -103,11 +97,10 @@ def get_files(directory: str, ext: Union[List[str], str]) -> List[str]:
         ext = ext
 
     extensions = [prepend_dot(extx) for extx in ext]
-    directory = append_forward_slash_path(directory)
     frames = {
         frame
         for ext1 in extensions
-        for frame in glob.glob(f"{directory}*{match_all_cases(ext1)}")
+        for frame in glob.glob(f"*{match_all_cases(ext1)}", root_dir=directory)
     }
 
     return sorted(list(frames))
@@ -127,10 +120,9 @@ def get_first_n_files(
     """
     if not isinstance(directories, list):
         directories = [directories]
-    dirs = []
-    for directory in directories:
-        dirs.append(get_files(append_forward_slash_path(directory), ext))
-    dir_exhausted = [False] * len(dirs)
+    dirs = [get_files(directory, ext) for directory in directories]
+
+    exhausted_dirs = set()
 
     curr_dir = 0
     curr_index = 0
@@ -138,10 +130,11 @@ def get_first_n_files(
     while len(output) < num:
         # Directory has no images left
         if curr_index >= len(dirs[curr_dir]):
+            exhausted_dirs.add(curr_dir)
             # Given directory is "exhausted": no images left
-            dir_exhausted[curr_dir] = True
+            exhausted_dirs.add(curr_dir)
             # All directories are exhausted.
-            if all(dir_exhausted):
+            if len(exhausted_dirs) == len(dirs):
                 return output
         else:
             # Otherwise, append next image in directory.
@@ -155,28 +148,7 @@ def get_first_n_files(
 
 
 def prepend_dot(ext: str) -> str:
-    return ("." if ext[0] != "." else "") + ext
-
-
-def append_forward_slash_path(
-    paths: Union[List[str], str]
-) -> Union[List[str], str, None]:
-    """
-    Returns the input string(s), in the same format as they were passed in, with a minimum of one forward slash
-    at the end, given that no forward slash exists at the end.
-
-    :param paths: one or more paths to add a forward slash to.
-    :return:
-    """
-    if paths is None:
-        return None
-    if isinstance(paths, str):
-        if paths[-1] != "/":
-            paths += "/"
-        return paths
-    else:
-        output = [path + ("/" if path[-1] != "/" else "") for path in paths]
-        return output
+    return ext if ext[0] == "." else "." + ext
 
 
 def clear_files(folder: str, *argv) -> None:
@@ -186,10 +158,9 @@ def clear_files(folder: str, *argv) -> None:
     :param argv: one or more extensions.
     :return:
     """
-    folder = append_forward_slash_path(folder)
     for ext in argv:
-        for f in glob.glob(os.path.join(folder) + "*" + prepend_dot(ext)):
-            os.remove(f)
+        for file in glob.glob("*" + prepend_dot(ext), root_dir=folder):
+            os.remove(file)
 
 
 def form_file_name(dir_out: str, file_name: str, ext: str) -> str:
@@ -200,17 +171,16 @@ def form_file_name(dir_out: str, file_name: str, ext: str) -> str:
     :param ext:         the file extension
     :return:
     """
-    split_name = os.path.splitext(file_name)
-    return os.path.join(dir_out, split_name[0] + prepend_dot(ext))
+    return str((Path(dir_out) / file_name).with_suffix(prepend_dot(ext)))
 
 
 def get_ext(file: str):
     """
-    Returns the file extension without any precending dots.
+    Returns the file extension without any preceding dots.
     :param file:    The file from which to get the extension.
     :return:
     """
-    return os.path.splitext(file)[1][1:]
+    return Path(file).suffix.lstrip(".")
 
 
 class FileCategory(enum.Enum):

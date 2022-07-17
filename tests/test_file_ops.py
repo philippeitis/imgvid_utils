@@ -73,13 +73,6 @@ class TestFileOps(unittest.TestCase):
         for i in range(10):
             self.assertFilePathEqual("./test_suite/images/image%d.mp4" % i, files[i])
 
-    def test_append_forward_slash_path(self):
-        paths = ["a", "hello", "hello/", "/hello/"]
-        paths_correct = ["a/", "hello/", "hello/", "/hello/"]
-        self.assertEqual(paths_correct, fo.append_forward_slash_path(paths))
-        self.assertEqual("string/", fo.append_forward_slash_path("string"))
-        self.assertEqual("string/", fo.append_forward_slash_path("string/"))
-
     def test_clear_files(self):
         self.assertTrue(len(fo.get_files("./test_suite/images/", "mp4")) > 0)
         fo.clear_files("./test_suite/images", "mp4")

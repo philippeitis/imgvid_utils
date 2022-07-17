@@ -311,13 +311,6 @@ def validate_extensions(parser, args):
     if not args.dirs_in:
         return
 
-    if fo.has_video_exts(args.ext_in):
-        if args.to_imgs:
-            parser.error(
-                "Can not select --to_imgs and specify videos as input from directories."
-            )
-        args.to_vid = True
-
     if args.to_vid and args.ext_out not in {"mp4"}:
         args.ext_out = "mp4"
         print("Output extension automatically set to %s." % args.ext_out)
@@ -333,7 +326,6 @@ def validate_arguments(parser):
 
     args = parser.parse_args()
     args.dir_out = args.dir_out or os.path.dirname(args.name) or "./"
-    args.dir_out = fo.append_forward_slash_path(args.dir_out)
     args.ext_out = args.ext_out or fo.get_ext(args.name)
     args.name = ".".join(os.path.splitext(os.path.basename(args.name))[:-1])
 

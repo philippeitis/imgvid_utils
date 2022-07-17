@@ -44,7 +44,6 @@ if __name__ == "__main__":
     args = ap.parse_arguments()
 
     input_args = [args.dirs_in, args.ext_in] if args.dirs_in else [args.files_in]
-    output_args = [args.dir_out, args.name, args.ext_out]
     size = get_correct_dimensions(args)
 
     vargs = {
@@ -80,7 +79,7 @@ if __name__ == "__main__":
             source = ims.FileIterator(args.files_in, **vargs).resize_in(size)
         else:
             source = vs.VideoIterator(
-                args.files_in, fps=args.fps, lock_framerate=not args.fps_unlock, **vargs
+                args.files_in, lock_framerate=not args.fps_unlock, **vargs
             ).resize_in(size)
 
     if args.max_imgs:
@@ -95,6 +94,8 @@ if __name__ == "__main__":
         source = source.rename(args.dir_out, args.name, args.ext_out)
         source.write_images()
     elif args.to_vid:
-        source.write_video(fo.form_file_name(args.dir_out, args.name, args.ext_out))
+        source.write_video(
+            fo.form_file_name(args.dir_out, args.name, args.ext_out), fps=args.fps
+        )
     else:
         raise NotImplementedError()
