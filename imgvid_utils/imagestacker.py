@@ -465,7 +465,7 @@ def get_dimensions_dirs(
     """
     Returns the appropriate dimensions given resize.
     :param dirs_in:     One or more directories with files of interest
-    :param ext:         The file extension(s).
+    :param exts:        The file extension(s).
     :param resize:      A Resize enum.
     :return:
     """
