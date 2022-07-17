@@ -1,5 +1,4 @@
 import enum
-import os
 import glob
 from pathlib import Path
 
@@ -77,24 +76,19 @@ def get_files(directory: str, extensions: Union[List[str], str]) -> List[str]:
     Returns a list of file names in the given directory ending in the given extensions
 
     :param directory:   one or more directories to search.
-    :param ext:         one or more extensions to match.
+    :param extensions:  one or more extensions to match.
     :return:
     """
-    jpg_subset = [".jpeg", ".jpg"]
-    png_subset = [".png"]
-    if extensions is None:
-        extensions = jpg_subset + png_subset
-    elif isinstance(extensions, str):
-        if "jpg" in extensions.lower():
-            extensions = jpg_subset
-        elif "png" in extensions.lower():
-            extensions = png_subset
-        elif "mp4" in extensions.lower():
-            extensions = [".mp4", ".MP4"]
-        else:
-            extensions = [extensions]
-    else:
-        extensions = extensions
+
+    if isinstance(extensions, str):
+        jpg_subset = [".jpeg", ".jpg"]
+        png_subset = [".png"]
+        extensions = {
+            "jpg": jpg_subset,
+            "jpeg": jpg_subset,
+            "png": png_subset,
+            "mp4": [".mp4"]
+        }.get(extensions.lower(), [extensions])
 
     directory = Path(directory)
     extensions = [prepend_dot(ext) for ext in extensions]
