@@ -72,7 +72,7 @@ def match_all_cases(strx: str):
     )
 
 
-def get_files(directory: str, ext: Union[List[str], str]) -> List[str]:
+def get_files(directory: str, extensions: Union[List[str], str]) -> List[str]:
     """
     Returns a list of file names in the given directory ending in the given extensions
 
@@ -82,25 +82,26 @@ def get_files(directory: str, ext: Union[List[str], str]) -> List[str]:
     """
     jpg_subset = [".jpeg", ".jpg"]
     png_subset = [".png"]
-    if ext is None:
-        ext = jpg_subset + png_subset
-    elif isinstance(ext, str):
-        if "jpg" in ext.lower():
-            ext = jpg_subset
-        elif "png" in ext.lower():
-            ext = png_subset
-        elif "mp4" in ext.lower():
-            ext = [".mp4", ".MP4"]
+    if extensions is None:
+        extensions = jpg_subset + png_subset
+    elif isinstance(extensions, str):
+        if "jpg" in extensions.lower():
+            extensions = jpg_subset
+        elif "png" in extensions.lower():
+            extensions = png_subset
+        elif "mp4" in extensions.lower():
+            extensions = [".mp4", ".MP4"]
         else:
-            ext = [ext]
+            extensions = [extensions]
     else:
-        ext = ext
+        extensions = extensions
 
-    extensions = [prepend_dot(extx) for extx in ext]
+    directory = Path(directory)
+    extensions = [prepend_dot(ext) for ext in extensions]
     frames = {
-        frame
-        for ext1 in extensions
-        for frame in glob.glob(f"*{match_all_cases(ext1)}", root_dir=directory)
+        directory / file
+        for ext in extensions
+        for file in glob.glob(f"*{match_all_cases(ext)}", root_dir=directory)
     }
 
     return sorted(list(frames))
@@ -158,9 +159,10 @@ def clear_files(folder: str, *argv) -> None:
     :param argv: one or more extensions.
     :return:
     """
+    folder = Path(folder)
     for ext in argv:
         for file in glob.glob("*" + prepend_dot(ext), root_dir=folder):
-            os.remove(file)
+            (folder / file).unlink()
 
 
 def form_file_name(dir_out: str, file_name: str, ext: str) -> str:
