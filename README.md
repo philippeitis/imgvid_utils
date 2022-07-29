@@ -117,7 +117,7 @@ source.skip(10).take(10)
 
 ### Chaining iterators:
 ```python
-# Note: Resize transformations should be applied to the chain iterator
+# Note: Resize transformations should only be applied once to avoid resizing artifacts
 source = source1.chain(source2).resize(resize)
 ```
 
