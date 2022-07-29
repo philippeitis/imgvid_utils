@@ -117,7 +117,7 @@ source.skip(10).take(10)
 
 ### Chaining iterators:
 ```python
-# Note: Resize transformations should be applied to the chain iterator
+# Note: Resize transformations should only be applied once to avoid resizing artifacts
 source = source1.chain(source2).resize(resize)
 ```
 
@@ -134,7 +134,7 @@ source.write_video("path/to/video.mp4", video_format="mp4v", fps=24.0)
 ```
 
 #### Processing images manually
-```
+```python
 for image_data in source:
     file_name = image_data.file_name
     ext = image_data.ext
