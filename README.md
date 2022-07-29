@@ -95,11 +95,6 @@ vs.VideoIterator(
 )
 ```
 
-### Renaming individual frames
-```python
-source.rename("output_dir", "prefix", "extension")
-```
-
 ### Resizing all input frames
 ```python
 source.resize_in((640, 480))
@@ -120,11 +115,29 @@ source.resize(ims.Resize.FIRST)
 source.skip(10).take(10)
 ```
 
-### Creating output
+### Chaining iterators:
 ```python
-# Requires source.rename() to be called first
-source.write_images()
+# Note: Resize transformations should be applied to the chain iterator
+source = source1.chain(source2).resize(resize)
+```
 
+### Creating output
+#### Writing files to a target directory
+```python
+source.write_images("output_dir", "prefix", "extension", self.choose_padding())
+```
+
+#### Writing files to a video
+```python
 ### Requires source.resize_in() to be called first
 source.write_video("path/to/video.mp4", video_format="mp4v", fps=24.0)
+```
+
+#### Processing images manually
+```
+for image_data in source:
+    file_name = image_data.file_name
+    ext = image_data.ext
+    image = image_data.images[0]
+    do_something(file_name, ext, image)
 ```
