@@ -1,3 +1,4 @@
+import shutil
 import unittest
 from imgvid_utils import video as vs
 from imgvid_utils import file_ops as fo
@@ -7,6 +8,16 @@ import cv2
 
 
 class TestVideoStacker(unittest.TestCase):
+    test_files = "./tests/test_files/"
+    test_output = "./tests/temp/"
+
+    def setUp(self):
+        os.makedirs(self.test_files, exist_ok=True)
+        os.makedirs(self.test_output, exist_ok=True)
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.test_files)
+        shutil.rmtree(self.test_output)
 
     # add frame equals.
     def assertFilePathEqual(self, path_one, path_two):
@@ -17,7 +28,6 @@ class TestVideoStacker(unittest.TestCase):
 
     def test_videosplit(self):
         path = "./tests/test_files/vsplit_00000.mp4"
-        os.makedirs("./tests/test_files/", exist_ok=True)
         make_random_vid(path)
         vs.VideoIterator(path).write_images("./tests/temp/", "random", "png", 2)
         files = fo.get_files("./tests/temp/", "png")
@@ -31,6 +41,7 @@ class TestVideoStacker(unittest.TestCase):
     def test_video_from_videos(self):
         path1 = "./tests/test_files/vfv_00001.mp4"
         path2 = "./tests/test_files/vfv_00002.mp4"
+
         make_random_vid(path1)
         make_random_vid(path2)
 
