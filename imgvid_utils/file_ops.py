@@ -29,7 +29,7 @@ def check_files_exist(files: Union[str, List[str]]) -> bool:
     if isinstance(files, str):
         return isfile(files)
 
-    return all((isfile(file) for file in files))
+    return all(isfile(file) for file in files)
 
 
 def get_missing_dirs(directories: Union[str, List[str]]) -> List[str]:
@@ -55,7 +55,7 @@ def check_dirs_exist(directories: Union[str, List[str]]) -> bool:
     if isinstance(directories, str):
         return isdir(directories)
 
-    return all((isdir(directory) for directory in directories))
+    return all(isdir(directory) for directory in directories)
 
 
 def match_all_cases(strx: str):
