@@ -1,4 +1,4 @@
-from . import videostacker
+from . import video
 from . import file_ops
-from . import imagestacker
+from . import image
 from . import make_random_vid

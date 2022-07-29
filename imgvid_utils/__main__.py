@@ -35,8 +35,8 @@ def get_correct_dimensions(args):
 
 if __name__ == "__main__":
     from . import arg_parser as ap
-    from . import videostacker as vs
-    from . import imagestacker as ims
+    from . import video as vs
+    from . import image as ims
     from . import file_ops as fo
 
     import os

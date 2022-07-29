@@ -1,5 +1,5 @@
 import unittest
-from imgvid_utils import videostacker as vs
+from imgvid_utils import video as vs
 from imgvid_utils import file_ops as fo
 import os
 import cv2

@@ -47,7 +47,7 @@ python -m imgvid_utils --dirs_in dir1 dir2 --read_matching_file_names
 
 ### Defining a stacking
 ```python
-from imgvid_utils.imagestacker import Stacking
+from imgvid_utils.image import Stacking
 
 stacking = Stacking(2, 2, "rd")
 ```
@@ -66,8 +66,8 @@ imgvid_utils provides a flexible API based on frame sources and sinks.
 ### Defining frame sources
 
 ```python
-from imgvid_utils import imagestacker as ims
-from imgvid_utils import videostacker as vs
+from imgvid_utils import image as ims
+from imgvid_utils import video as vs
 
 # Groups the images by order of appearance in the provided lists
 ims.FileIterator(

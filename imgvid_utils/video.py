@@ -3,8 +3,8 @@ from typing import Union, List, Tuple
 import cv2
 
 from . import file_ops as fo
-from . import imagestacker as ims
-from .imagestacker import Stacking
+from . import image as ims
+from .image import Stacking
 
 
 def video_dimensions(video) -> Tuple[int, int]:

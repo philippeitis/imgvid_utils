@@ -2,7 +2,7 @@ import os
 import numbers
 
 from . import file_ops as fo
-from . import imagestacker as ims
+from . import image as ims
 
 
 def parse_arguments():
