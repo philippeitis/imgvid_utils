@@ -17,7 +17,7 @@ class VideoIterator(ims.GenericImageIterator):
     def __init__(
         self,
         paths: Union[List[str], str],
-        stacking: Stacking = Stacking.default(),
+        stacking: Stacking = None,
         lock_framerate: bool = True,
     ):
         """
@@ -26,10 +26,10 @@ class VideoIterator(ims.GenericImageIterator):
         :param paths:     The file paths to the videos to read
         :param num:                 The number of frames to return each iteration.
         """
-        super().__init__(stacking=stacking)
-
         if isinstance(paths, str):
             paths = [paths]
+
+        super().__init__(stacking=stacking or Stacking(len(paths), 1, "rd"))
 
         self.paths = paths
 
@@ -70,9 +70,9 @@ class VideoIterator(ims.GenericImageIterator):
         """
         for counter in range(len(self.paths)):
             self._load_video(counter)
-        self._max_iters = max(
+        self._max_iters = int(max(
             video.get(cv2.CAP_PROP_FRAME_COUNT) for video in self.videos
-        )
+        ))
         self._set_dims()
 
     def __iter__(self):

@@ -1,6 +1,7 @@
 import unittest
 from imgvid_utils import video as vs
 from imgvid_utils import file_ops as fo
+from imgvid_utils.make_random_vid import make_random_vid
 import os
 import cv2
 
@@ -15,41 +16,67 @@ class TestVideoStacker(unittest.TestCase):
         self.assertRaises(ValueError, vs.VideoIterator, "./test_files/i_do_not_exist.mp4", "temp/")
 
     def test_videosplit(self):
-        # vs.split_video("./tests/test_files/00000.MTS", "temp/", "kitty", "png", frame_count=100, start_frame=15)
-        # self.assertEqual(100, len(fo.get_files("./temp/", "png")))
-        # files = fo.get_files("./temp", "png")
-        # for i in range(100):
-        #     self.assertTrue(self.assertFilePathEqual("./temp/kitty%s.png" % str(i).zfill(99), files[i]))
-        #
-        # fo.clear_files("./temp/", "png")
-        pass
+        path = "./tests/test_files/00000.mp4"
+        os.makedirs("./tests/test_files/", exist_ok=True)
+        make_random_vid(path)
+        vs.VideoIterator(path).write_images("./tests/temp/", "random", "png", 2)
+        files = fo.get_files("./tests/temp/", "png")
+        self.assertEqual(100, len(files))
+        for i, file in enumerate(files):
+            expected = "./tests/temp/random%s.png" % str(i).zfill(2)
+            self.assertTrue(self.assertFilePathEqual(expected, file), msg=f"{expected} != {file}")
+
+        fo.clear_files("./tests/temp/", "png")
 
     def test_video_from_videos(self):
-        # vs.make_video_from_videos(["./imgvid_utils/test_files/00000.MTS", "./imgvid_utils/test_files/00000.MTS"]
-        #                           , "temp/", "kitty", "mp4", cols=2, rows=1, width=800, height=600)
-        #
-        # video = cv2.VideoCapture("./imgvid_utils/test_files/00000.MTS")
-        # fps = video.get(cv2.CAP_PROP_FPS)
-        # num_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-        # ret = True
-        # while ret:
-        #     ret, frame = video.read()
-        # video.release()
-        # vid = cv2.VideoCapture("./temp/kitty.mp4")
-        # width_vid = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
-        # height_vid = int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        # fps_vid = vid.get(cv2.CAP_PROP_FPS)
-        # num_frames_vid = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
-        # ret = True
-        # while ret:
-        #     ret, frame = video.read()
-        # vid.release()
-        #
-        # self.assertEqual(num_frames, num_frames_vid)
-        # self.assertEqual(fps, fps_vid)
-        # self.assertEqual(1600, width_vid)
-        # self.assertEqual(600, height_vid)
-        pass
+        path1 = "./tests/test_files/00001.mp4"
+        path2 = "./tests/test_files/00002.mp4"
+        make_random_vid(path1)
+        make_random_vid(path2)
+
+        frames = 0
+        for _ in vs.VideoIterator([path1, path2]):
+            frames += 1
+
+        self.assertEqual(frames, 100, "number of frames should be equal to 100")
+
+    def test_video_stack(self):
+        path1 = "./tests/test_files/00001.mp4"
+        path2 = "./tests/test_files/00002.mp4"
+        make_random_vid(path1)
+        make_random_vid(path2)
+
+        test_path = "./tests/temp/x.mp4"
+        vs.VideoIterator([path1, path2]).write_video(test_path)
+        video = cv2.VideoCapture("./tests/temp/x.mp4")
+        self.assertEqual(video.get(cv2.CAP_PROP_FPS), 24.0)
+        self.assertEqual(vs.video_dimensions(video), (128, 48))
+        self.assertEqual(video.get(cv2.CAP_PROP_FRAME_COUNT), 100.0)
+
+    def test_concatenate_videos(self):
+        path1 = "./tests/test_files/00001.mp4"
+        path2 = "./tests/test_files/00002.mp4"
+        make_random_vid(path1)
+        make_random_vid(path2)
+
+        frames = 0
+        for _ in vs.VideoIterator(path1).chain(vs.VideoIterator(path2)):
+            frames += 1
+
+        self.assertEqual(frames, 200, "number of frames should be equal to 200")
+
+    def test_concatenate_videos_write(self):
+        path1 = "./tests/test_files/00001.mp4"
+        path2 = "./tests/test_files/00002.mp4"
+        make_random_vid(path1)
+        make_random_vid(path2)
+
+        test_path = "./tests/temp/x.mp4"
+        vs.VideoIterator(path1).chain(vs.VideoIterator(path2)).resize_in((64, 48)).write_video(test_path)
+        video = cv2.VideoCapture("./tests/temp/x.mp4")
+        self.assertEqual(video.get(cv2.CAP_PROP_FPS), 24.0)
+        self.assertEqual(vs.video_dimensions(video), (64, 48))
+        self.assertEqual(video.get(cv2.CAP_PROP_FRAME_COUNT), 200.0)
 
 
 if __name__ == '__main__':
