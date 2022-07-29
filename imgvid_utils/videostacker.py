@@ -99,9 +99,7 @@ class VideoIterator(ims.GenericImageIterator):
         self._num_iters += 1
         self.frame_index += 1
 
-        for transform in self.transforms:
-            images = transform.apply(images)
-        return images
+        return self._apply_transforms(images)
 
     def skip(self, count: int):
         self.frame_index += count

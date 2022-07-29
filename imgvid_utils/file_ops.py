@@ -1,9 +1,18 @@
 import enum
 import glob
+import os
 from pathlib import Path
 
 from typing import Union, List
 from os.path import isdir, isfile
+
+
+def append_forward_slash_path(path: str) -> str:
+    """
+    Appends a forward slash to the path if one is not present.
+    :return:
+    """
+    return path if path[-1] == "/" else path + "/"
 
 
 def get_missing_files(files: Union[str, List[str]]) -> List[str]:
@@ -86,15 +95,16 @@ def get_files(directory: str, extensions: Union[List[str], str]) -> List[str]:
             "jpg": jpg_subset,
             "jpeg": jpg_subset,
             "png": [".png"],
-            "mp4": [".mp4"]
+            "mp4": [".mp4"],
         }.get(extensions.lower().lstrip("."), [extensions])
 
-    directory = Path(directory)
+    directory = append_forward_slash_path(directory)
     extensions = [prepend_dot(ext) for ext in extensions]
     frames = {
-        directory / file
+        file
         for ext in extensions
-        for file in glob.glob(f"*{match_all_cases(ext)}", root_dir=directory)
+        # TODO: when Python min_ver is 3.10, use root_dir=directory
+        for file in glob.glob(f"{directory}*{match_all_cases(ext)}")
     }
 
     return sorted(list(frames))
@@ -145,17 +155,19 @@ def prepend_dot(ext: str) -> str:
     return ext if ext[0] == "." else "." + ext
 
 
-def clear_files(folder: str, *argv) -> None:
+def clear_files(directory: str, *exts) -> None:
     """
     Clears the given folder of any and all files that match any extension provided.
-    :param folder: folder to remove extensions from.
-    :param argv: one or more extensions.
+    :param directory: folder to remove extensions from.
+    :param exts: one or more extensions.
     :return:
     """
-    folder = Path(folder)
-    for ext in argv:
-        for file in glob.glob("*" + prepend_dot(ext), root_dir=folder):
-            (folder / file).unlink()
+    directory = append_forward_slash_path(directory)
+    for ext in exts:
+        ext = prepend_dot(ext)
+        # TODO: when Python min_ver is 3.10, use root_dir=directory
+        for file in glob.glob(f"{directory}*{ext}"):
+            os.remove(file)
 
 
 def form_file_name(dir_out: str, file_name: str, ext: str) -> str:
