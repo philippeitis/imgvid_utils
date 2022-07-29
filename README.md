@@ -69,7 +69,7 @@ imgvid_utils provides a flexible API based on frame sources and sinks.
 from imgvid_utils import imagestacker as ims
 from imgvid_utils import videostacker as vs
 
-# Groups the nth image in each list
+# Groups the images by order of appearance in the provided lists
 ims.FileIterator(
     [["file1.png", "file2.jpg", "file3.png"], ["file1.jpg", "file2.png", ...], ...],
     stacking=ims.Stacking(1, 2, "rd")
@@ -77,14 +77,14 @@ ims.FileIterator(
 
 # Groups images by order of appearance in the provided directories
 ims.DirectoryIterator(
-    ["./path_to_first_image", "./path_to_second_image"],
+    ["./path_to_first_directory", "./path_to_second_directory"],
     stacking=ims.Stacking(1, 2, "rd")
 )
 
 # A variant of DirectoryIterator which groups images with matching file names
 # Output images are returned in lexographical order
 ims.DirectoryIteratorMatchNames(
-    ["./path_to_first_image", "./path_to_second_image"],
+    ["./path_to_first_directory", "./path_to_second_directory"],
     stacking=ims.Stacking(1, 2, "rd")
 )
 
@@ -105,7 +105,7 @@ source.rename("output_dir", "prefix", "extension")
 source.resize_in((640, 480))
 ```
 
-### Resizing input frame on an individual basis
+### Resizing input frames on an individual basis
 ```python
 source.resize(ims.Resize.FIRST)
 # Choices are
