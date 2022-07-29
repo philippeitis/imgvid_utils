@@ -341,14 +341,14 @@ class FileIterator(GenericImageIterator):
     def __init__(
         self,
         paths: Union[List[str], List[List[str]]],
-        stacking: Stacking = Stacking.default(),
+        stacking: Stacking = None,
     ):
-        super().__init__(stacking=stacking)
-
         if paths and isinstance(paths[0], str):
             paths = [paths]
 
-        if not all((fo.check_files_exist(paths_) for paths_ in paths)):
+        super().__init__(stacking=stacking or Stacking(len(paths), 1, "rd"))
+
+        if not all(fo.check_files_exist(paths_) for paths_ in paths):
             raise ValueError("One or more files not found.")
 
         self.files = [SkipIterator(paths_) for paths_ in paths]
