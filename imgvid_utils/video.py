@@ -70,9 +70,9 @@ class VideoIterator(ims.GenericImageIterator):
         """
         for counter in range(len(self.paths)):
             self._load_video(counter)
-        self._max_iters = int(max(
-            video.get(cv2.CAP_PROP_FRAME_COUNT) for video in self.videos
-        ))
+        self._max_iters = int(
+            max(video.get(cv2.CAP_PROP_FRAME_COUNT) for video in self.videos)
+        )
         self._set_dims()
 
     def __iter__(self):
