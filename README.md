@@ -134,7 +134,7 @@ source.write_video("path/to/video.mp4", video_format="mp4v", fps=24.0)
 ```
 
 #### Processing images manually
-```
+```python
 for image_data in source:
     file_name = image_data.file_name
     ext = image_data.ext
